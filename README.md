@@ -49,7 +49,18 @@ A Home Assistant custom integration for Moogo smart spray systems, providing com
 
 ### HACS *(Recommended)*
 
-> **Note**: This integration is not yet available in the default HACS repository. Manual installation is currently required.
+This integration includes HACS support and can be submitted to the HACS community store:
+
+1. **Add Custom Repository** (until officially added):
+   - Go to HACS → Integrations
+   - Click the three dots menu → Custom repositories
+   - Add repository URL: `https://github.com/joyfulhouse/moogo`
+   - Category: Integration
+   
+2. **Install via HACS**:
+   - Search for "Moogo Smart Spray System"
+   - Click Install
+   - Restart Home Assistant
 
 ### Manual Installation
 
