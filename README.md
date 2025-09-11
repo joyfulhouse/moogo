@@ -1,4 +1,4 @@
-# Moogo Smart Spray System for Home Assistant
+# Moogo Smart Mosquito Misting Device for Home Assistant
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
@@ -7,20 +7,20 @@
 
 [![Project Maintenance][maintenance-shield]][user_profile]
 
-A Home Assistant custom integration for Moogo smart spray systems, providing comprehensive device control, monitoring, and automation capabilities.
+A Home Assistant custom integration for Moogo smart mosquito misting devices, providing comprehensive device control, monitoring, and automation capabilities for automated mosquito control in your outdoor spaces.
 
 ## ⚡ Features
 
 - 🏠 **Complete Home Assistant Integration** - Native support with proper device discovery
-- 📊 **Device Monitoring** - Real-time status, liquid/water levels, temperature, humidity, signal strength
-- 🎮 **Device Control** - Start/stop spray operations with switch entities
-- 📅 **Schedule Management** - Monitor active schedules and next spray times
-- 🌡️ **Environmental Sensors** - Temperature, humidity, and signal strength monitoring
-- 💧 **Level Monitoring** - Liquid and water tank status ("OK" or "Empty")
-- 🔄 **Automatic Updates** - Smart polling with 30-second intervals for authenticated users
+- 🦟 **Mosquito Control Monitoring** - Real-time misting device status, solution levels, environmental conditions
+- 🎮 **Misting Device Control** - Start/stop mosquito misting operations with switch entities
+- 📅 **Automated Schedule Management** - Monitor active misting schedules and next operation times
+- 🌡️ **Environmental Sensors** - Temperature, humidity, and signal strength monitoring for optimal misting conditions
+- 💧 **Solution Level Monitoring** - Mosquito control concentrate and water tank status ("OK" or "Empty")
+- 🔄 **Smart Automation** - 30-second polling for real-time monitoring of your mosquito-free zone
 - 🔐 **Secure Authentication** - Email/password authentication with token management
-- 📶 **Public Data Access** - Access liquid types and schedules without authentication
-- ⚡ **Firmware Tracking** - Device firmware version in HomeAssistant device info
+- 📶 **Public Data Access** - Access concentrate types and recommended misting schedules without authentication
+- ⚡ **Device Management** - Firmware version tracking and comprehensive device information
 
 ## 🏗️ Supported Entities
 
@@ -28,22 +28,22 @@ A Home Assistant custom integration for Moogo smart spray systems, providing com
 
 **Public Data (Always Available):**
 - **API Status** - Integration connectivity status
-- **Liquid Types** - Available concentrate types with details
-- **Schedule Templates** - Recommended spray schedule templates
+- **Concentrate Types** - Available mosquito control concentrate types with details
+- **Schedule Templates** - Recommended mosquito misting schedule templates
 
 **Authenticated Device Data:**
 - **Device Status** - Online/offline status monitoring
-- **Liquid Level** - "OK" or "Empty" status
-- **Water Level** - "OK" or "Empty" status
-- **Temperature** - Environmental temperature readings (°C)
-- **Humidity** - Environmental humidity readings (%)
+- **Concentrate Level** - Mosquito control solution status ("OK" or "Empty")
+- **Water Level** - Water tank status for misting system ("OK" or "Empty")
+- **Temperature** - Environmental temperature readings (°C) for optimal misting conditions
+- **Humidity** - Environmental humidity readings (%) affecting mosquito activity
 - **Signal Strength** - Device WiFi signal strength (dBm)
-- **Active Schedules** - Count of enabled spray schedules
-- **Last Spray** - Timestamp and duration of most recent spray
+- **Active Schedules** - Count of enabled mosquito misting schedules
+- **Last Misting** - Timestamp and duration of most recent mosquito control misting
 
 ### Switches
 
-- **Device Spray Control** - Start/stop spray operations for each device
+- **Mosquito Misting Control** - Start/stop mosquito misting operations for each device
 
 ## 📦 Installation
 
@@ -58,7 +58,7 @@ This integration includes HACS support and can be submitted to the HACS communit
    - Category: Integration
    
 2. **Install via HACS**:
-   - Search for "Moogo Smart Spray System"
+   - Search for "Moogo Smart Mosquito Misting Device"
    - Click Install
    - Restart Home Assistant
 
@@ -70,7 +70,7 @@ This integration includes HACS support and can be submitted to the HACS communit
    /config/custom_components/moogo/
    ```
 3. Restart Home Assistant
-4. Add the integration through the UI: **Settings** → **Devices & Services** → **Add Integration** → **Moogo Smart Spray System**
+4. Add the integration through the UI: **Settings** → **Devices & Services** → **Add Integration** → **Moogo Smart Mosquito Misting Device**
 
 ### Direct Download
 
@@ -84,16 +84,16 @@ git clone https://github.com/joyfulhouse/moogo.git moogo
 The integration supports two modes:
 
 ### 🔐 Full Access (Recommended)
-Provide your Moogo account credentials for complete device control:
-- All sensor data including device status, levels, environmental data
-- Device control switches for spray operations
+Provide your Moogo account credentials for complete mosquito misting device control:
+- All sensor data including device status, concentrate/water levels, environmental conditions
+- Misting device control switches for mosquito control operations
 - Real-time status updates every 30 seconds
-- Device information including firmware version
+- Device information including firmware version and misting history
 
 ### 📊 Public Data Only
 Leave credentials blank to access:
-- Available liquid concentrate types
-- Recommended spray schedules
+- Available mosquito control concentrate types
+- Recommended mosquito misting schedules
 - Basic API connectivity status
 - Updates every hour for public data
 
@@ -101,7 +101,7 @@ Leave credentials blank to access:
 
 1. Go to **Settings** → **Devices & Services**
 2. Click **Add Integration** 
-3. Search for **Moogo Smart Spray System** and select it
+3. Search for **Moogo Smart Mosquito Misting Device** and select it
 4. Choose your configuration:
    - **Full Access**: Enter your Moogo email and password
    - **Public Data**: Leave email and password fields empty
@@ -114,7 +114,7 @@ Leave credentials blank to access:
 **Low Level Alert:**
 ```yaml
 automation:
-  - alias: "Moogo Low Liquid Alert"
+  - alias: "Moogo Low Concentrate Alert"
     trigger:
       - platform: state
         entity_id: sensor.moogo_s1_yitg_liquid_level
@@ -122,8 +122,8 @@ automation:
     action:
       - service: notify.mobile_app
         data:
-          title: "Moogo Alert"
-          message: "Moogo device liquid level is empty - please refill"
+          title: "Moogo Mosquito Control Alert"
+          message: "Mosquito control concentrate is empty - please refill for continued protection"
 
   - alias: "Moogo Low Water Alert" 
     trigger:
@@ -133,17 +133,17 @@ automation:
     action:
       - service: notify.mobile_app
         data:
-          title: "Moogo Alert"
-          message: "Moogo device water level is empty - please refill"
+          title: "Moogo Mosquito Control Alert"
+          message: "Misting system water level is empty - please refill for continued operation"
 ```
 
 **Evening Mosquito Control:**
 ```yaml
 automation:
-  - alias: "Evening Spray Schedule"
+  - alias: "Evening Mosquito Misting Schedule"
     trigger:
       platform: time
-      at: "19:00:00"
+      at: "19:00:00"  # Peak mosquito activity time
     condition:
       - condition: state
         entity_id: sensor.moogo_s1_yitg_status
@@ -158,36 +158,43 @@ automation:
       - service: switch.turn_on
         target:
           entity_id: switch.moogo_s1_yitg_spray
+        data:
+          # Start mosquito misting for outdoor protection
 ```
 
-**Temperature-Based Control:**
+**Temperature-Based Mosquito Control:**
 ```yaml
 automation:
-  - alias: "Hot Weather Spray"
+  - alias: "Hot Weather Mosquito Misting"
     trigger:
       - platform: numeric_state
         entity_id: sensor.moogo_s1_yitg_temperature
-        above: 30
+        above: 25  # Optimal temperature for mosquito activity
     condition:
       - condition: state
         entity_id: sensor.moogo_s1_yitg_status
         state: "Online"
+      - condition: time
+        after: "18:00:00"  # Evening hours when mosquitoes are most active
+        before: "22:00:00"
     action:
       - service: switch.turn_on
         target:
           entity_id: switch.moogo_s1_yitg_spray
+        data:
+          # Activate misting when conditions favor mosquito activity
 ```
 
 ### Lovelace Card Example
 
 ```yaml
 type: entities
-title: Moogo Spray System
+title: Moogo Mosquito Misting System
 entities:
   - entity: sensor.moogo_s1_yitg_status
-    name: Status
+    name: Device Status
   - entity: sensor.moogo_s1_yitg_liquid_level
-    name: Liquid Level
+    name: Concentrate Level
   - entity: sensor.moogo_s1_yitg_water_level
     name: Water Level
   - entity: sensor.moogo_s1_yitg_temperature
@@ -197,11 +204,11 @@ entities:
   - entity: sensor.moogo_s1_yitg_signal_strength
     name: Signal Strength
   - entity: sensor.moogo_s1_yitg_active_schedules
-    name: Active Schedules
+    name: Active Misting Schedules
   - entity: sensor.moogo_s1_yitg_last_spray
-    name: Last Spray
+    name: Last Misting
   - entity: switch.moogo_s1_yitg_spray
-    name: Spray Control
+    name: Mosquito Misting Control
 ```
 
 ## 🔧 Troubleshooting
@@ -272,7 +279,7 @@ The integration communicates with:
 - **Production**: `https://api.moogo.com/`
 - **Authentication**: Token-based with automatic refresh
 - **Rate Limiting**: 24-hour lockout protection after multiple failed attempts
-- **Update Intervals**: 30 seconds for authenticated data, 1 hour for public data
+- **Update Intervals**: 30 seconds for real-time mosquito control monitoring, 1 hour for public data
 
 ## 📝 License
 

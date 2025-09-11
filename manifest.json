@@ -1,6 +1,6 @@
 {
   "domain": "moogo",
-  "name": "Moogo Smart Spray System",
+  "name": "Moogo Smart Mosquito Misting Device",
   "codeowners": ["@btli"],
   "config_flow": true,
   "dependencies": [],
