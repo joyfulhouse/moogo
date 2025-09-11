@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure Moogo Integration",
+        "description": "Set up your Moogo smart spray system integration.\n\n{note}",
+        "data": {
+          "email": "Email (optional for public data)",
+          "password": "Password (optional for public data)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Moogo API",
+      "invalid_auth": "Invalid email or password",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "Integration already configured"
+    }
+  }
+}

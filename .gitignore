@@ -1,0 +1,99 @@
+# Moogo HomeAssistant Integration - Production .gitignore
+
+# =============================================================================
+# SENSITIVE FILES - NEVER COMMIT THESE
+# =============================================================================
+
+# Secrets and credentials
+secrets.py
+*.key
+*.pem
+.env
+.env.*
+credentials.json
+api_keys.txt
+tokens.txt
+
+# =============================================================================
+# PYTHON
+# =============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Unit test / coverage reports
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# =============================================================================
+# DEVELOPMENT & TESTING
+# =============================================================================
+
+# Test files and directories
+tests/
+test_*.py
+*_test.py
+responses/
+test_data/
+*.test
+*.log
+
+# Development artifacts
+endpoint_explorer.py
+discovery/
+development/
+dev/
+
+# =============================================================================
+# OPERATING SYSTEMS
+# =============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+._*
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# =============================================================================
+# IDEs AND EDITORS
+# =============================================================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+
+# Claude AI settings
+.claude/
+
+# =============================================================================
+# HOMEASSISTANT SPECIFIC
+# =============================================================================
+
+# HomeAssistant logs and storage
+home-assistant.log
+.storage/
+known_devices.yaml
+secrets.yaml
