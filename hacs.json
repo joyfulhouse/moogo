@@ -1,0 +1,9 @@
+{
+  "name": "Moogo Smart Spray System",
+  "content_in_root": true,
+  "zip_release": true,
+  "filename": "moogo.zip",
+  "country": ["US"],
+  "hacs": "1.6.0",
+  "homeassistant": "2023.1.0"
+}
