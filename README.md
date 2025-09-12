@@ -303,14 +303,16 @@ This is an unofficial integration and is not affiliated with or endorsed by Moog
 
 **Moogo** and related trademarks are property of their respective owners. This integration is developed independently and is not endorsed by the trademark holders.
 
-[releases-shield]: https://img.shields.io/github/release/joyfulhouse/moogo.svg?style=for-the-badge
-[commits-shield]: https://img.shields.io/github/commit-activity/y/joyfulhouse/moogo.svg?style=for-the-badge
-[commits]: https://github.com/joyfulhouse/moogo/commits/main
-[hacs]: https://github.com/hacs/integration
-[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/joyfulhouse/moogo.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-Bryan%20Li%20%40btli-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/v/release/joyfulhouse/moogo?style=for-the-badge
 [releases]: https://github.com/joyfulhouse/moogo/releases
-[user_profile]: https://github.com/btli
+[commits-shield]: https://img.shields.io/github/commit-activity/y/joyfulhouse/moogo?style=for-the-badge
+[commits]: https://github.com/joyfulhouse/moogo/commits/main
+[license-shield]: https://img.shields.io/github/license/joyfulhouse/moogo?style=for-the-badge
+[hacs]: https://hacs.xyz
+[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
+[maintenance-shield]: https://img.shields.io/badge/maintainer-joyfulhouse-blue.svg?style=for-the-badge
+[user_profile]: https://github.com/joyfulhouse
+[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
+[buymecoffee]: https://www.buymeacoffee.com/btli
 [issues]: https://github.com/joyfulhouse/moogo/issues
 [discussions]: https://github.com/joyfulhouse/moogo/discussions
