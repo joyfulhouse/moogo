@@ -6,6 +6,7 @@
 [![hacs][hacsbadge]][hacs]
 
 [![Project Maintenance][maintenance-shield]][user_profile]
+[![Buy me a coffee][buymecoffeebadge]][buymecoffee]
 
 A Home Assistant custom integration for Moogo smart mosquito misting devices, providing comprehensive device control, monitoring, and automation capabilities for automated mosquito control in your outdoor spaces.
 
