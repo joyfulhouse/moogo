@@ -2,7 +2,7 @@
 
 HomeAssistant integration for Moogo smart spray devices providing device control, monitoring, and scheduling capabilities within HomeAssistant, following established HomeAssistant integration patterns.
 
-## ✅ Current Implementation Status (v0.2.0)
+## ✅ Current Implementation Status (v1.0.2)
 
 ### ✅ Phase 1 + Phase 2 Completed (as of 2025-09-11)
 
@@ -41,7 +41,7 @@ HomeAssistant integration for Moogo smart spray devices providing device control
 
 ```
 custom_components/moogo/
-├── manifest.json          # v0.2.0, HomeAssistant integration metadata
+├── manifest.json          # v1.0.2, HomeAssistant integration metadata
 ├── __init__.py            # Integration setup with authentication support
 ├── const.py               # Complete constants and API endpoint definitions
 ├── config_flow.py         # User configuration with both auth and public modes
