@@ -166,6 +166,68 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle reconfiguration of the integration."""
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+
+        if user_input is not None:
+            errors = {}
+
+            try:
+                # Validate new credentials or public data mode
+                info = await validate_input(self.hass, user_input)
+
+                # Update the config entry with new data
+                self.hass.config_entries.async_update_entry(
+                    entry,
+                    data=user_input,
+                    title=info["title"],
+                )
+
+                # Reload the config entry to apply new settings
+                await self.hass.config_entries.async_reload(entry.entry_id)
+
+                return self.async_abort(reason="reconfigure_successful")
+
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception during reconfiguration")
+                errors["base"] = "unknown"
+
+            # Show form again with errors
+            return self.async_show_form(
+                step_id="reconfigure",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional(CONF_EMAIL, default=user_input.get(CONF_EMAIL, "")): str,
+                        vol.Optional(CONF_PASSWORD, default=""): str,
+                    }
+                ),
+                errors=errors,
+                description_placeholders={
+                    "note": "Leave email and password empty for public data only (liquid types and schedules). Enter credentials for full device control."
+                }
+            )
+
+        # Show initial form with current settings
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_EMAIL, default=entry.data.get(CONF_EMAIL, "")): str,
+                    vol.Optional(CONF_PASSWORD, default=""): str,
+                }
+            ),
+            description_placeholders={
+                "note": "Leave email and password empty for public data only (liquid types and schedules). Enter credentials for full device control."
+            }
+        )
+
 
 class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect."""

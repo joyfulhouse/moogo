@@ -36,5 +36,66 @@
       "reauth_successful": "Reauthentication successful",
       "reconfigure_successful": "Reconfiguration successful"
     }
+  },
+  "entity": {
+    "sensor": {
+      "moogo_liquid_types": {
+        "name": "Liquid Types"
+      },
+      "moogo_schedule_templates": {
+        "name": "Schedule Templates"
+      },
+      "moogo_api_status": {
+        "name": "API Status",
+        "state": {
+          "connected": "Connected",
+          "disconnected": "Disconnected"
+        }
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "online": "Online",
+          "offline": "Offline",
+          "unknown": "Unknown"
+        }
+      },
+      "liquid_level": {
+        "name": "Liquid Level",
+        "state": {
+          "ok": "OK",
+          "empty": "Empty",
+          "unknown": "Unknown"
+        }
+      },
+      "water_level": {
+        "name": "Water Level",
+        "state": {
+          "ok": "OK",
+          "empty": "Empty",
+          "unknown": "Unknown"
+        }
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "signal_strength": {
+        "name": "Signal Strength"
+      },
+      "active_schedules": {
+        "name": "Active Schedules"
+      },
+      "last_spray": {
+        "name": "Last Spray"
+      }
+    },
+    "switch": {
+      "spray": {
+        "name": "Spray"
+      }
+    }
   }
 }

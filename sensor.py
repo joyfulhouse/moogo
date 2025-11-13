@@ -17,6 +17,7 @@ from homeassistant.const import (
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -172,6 +173,7 @@ class MoogoAPIStatusSensor(MoogoBaseSensor):
         self._attr_name = "Moogo API Status"
         self._attr_unique_id = "moogo_api_status"
         self._attr_icon = "mdi:api"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def native_value(self) -> str:
@@ -371,6 +373,7 @@ class MoogoDeviceSignalStrengthSensor(MoogoDeviceSensor):
         self._attr_device_class = SensorDeviceClass.SIGNAL_STRENGTH
         self._attr_native_unit_of_measurement = SIGNAL_STRENGTH_DECIBELS_MILLIWATT
         self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def native_value(self) -> int | None:
@@ -441,6 +444,7 @@ class MoogoDeviceLastSpraySensor(MoogoDeviceSensor):
         self._attr_unique_id = f"{device_id}_last_spray"
         self._attr_icon = "mdi:spray-bottle"
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
+        self._attr_entity_registry_enabled_default = False
 
     @property
     def native_value(self) -> datetime | None:
