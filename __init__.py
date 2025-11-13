@@ -1,4 +1,5 @@
 """The Moogo integration."""
+
 from __future__ import annotations
 
 import logging
@@ -8,9 +9,9 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
-from .moogo_api import MoogoClient
 from .const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
 from .coordinator import MoogoCoordinator
+from .moogo_api import MoogoClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,12 +23,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Moogo from a config entry."""
     # Initialize API client
     from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
     session = async_get_clientsession(hass)
 
     api = MoogoClient(
         email=entry.data.get(CONF_EMAIL),
         password=entry.data.get(CONF_PASSWORD),
-        session=session
+        session=session,
     )
 
     # Test connection before setup (Bronze tier: test-before-setup)
@@ -68,7 +70,9 @@ async def _async_remove_stale_devices(
     device_registry = dr.async_get(hass)
 
     # Get all devices for this integration entry
-    devices_in_registry = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
+    devices_in_registry = dr.async_entries_for_config_entry(
+        device_registry, entry.entry_id
+    )
 
     # Get current device IDs from coordinator data
     current_device_ids = set()

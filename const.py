@@ -1,4 +1,5 @@
 """Constants for the Moogo integration."""
+
 from typing import Final
 
 DOMAIN: Final = "moogo"

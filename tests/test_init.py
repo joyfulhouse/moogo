@@ -1,15 +1,14 @@
 """Test the Moogo integration init."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
+from custom_components.moogo import async_setup_entry, async_unload_entry
+from custom_components.moogo.const import DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
-
-from custom_components.moogo import async_setup_entry, async_unload_entry
-from custom_components.moogo.const import DOMAIN
 
 
 async def test_setup_entry_success(hass: HomeAssistant, mock_moogo_client) -> None:
@@ -28,11 +27,12 @@ async def test_setup_entry_success(hass: HomeAssistant, mock_moogo_client) -> No
         unique_id="test@example.com",
     )
 
-    with patch(
-        "custom_components.moogo.MoogoClient", return_value=mock_moogo_client
-    ), patch(
-        "custom_components.moogo.coordinator.MoogoCoordinator"
-    ) as mock_coordinator_class:
+    with (
+        patch("custom_components.moogo.MoogoClient", return_value=mock_moogo_client),
+        patch(
+            "custom_components.moogo.coordinator.MoogoCoordinator"
+        ) as mock_coordinator_class,
+    ):
         mock_coordinator = MagicMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
         mock_coordinator.data = {
@@ -98,7 +98,9 @@ async def test_setup_entry_connection_failure(hass: HomeAssistant) -> None:
         assert result is False
 
 
-async def test_setup_entry_public_data_only(hass: HomeAssistant, mock_moogo_client) -> None:
+async def test_setup_entry_public_data_only(
+    hass: HomeAssistant, mock_moogo_client
+) -> None:
     """Test setup with public data only (no credentials)."""
     config_entry = ConfigEntry(
         version=1,
@@ -113,11 +115,12 @@ async def test_setup_entry_public_data_only(hass: HomeAssistant, mock_moogo_clie
 
     mock_moogo_client.is_authenticated = False
 
-    with patch(
-        "custom_components.moogo.MoogoClient", return_value=mock_moogo_client
-    ), patch(
-        "custom_components.moogo.coordinator.MoogoCoordinator"
-    ) as mock_coordinator_class:
+    with (
+        patch("custom_components.moogo.MoogoClient", return_value=mock_moogo_client),
+        patch(
+            "custom_components.moogo.coordinator.MoogoCoordinator"
+        ) as mock_coordinator_class,
+    ):
         mock_coordinator = MagicMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
         mock_coordinator.data = {

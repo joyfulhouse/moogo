@@ -1,18 +1,19 @@
 """Test the Moogo switch platform."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
+from custom_components.moogo.const import DOMAIN
+from custom_components.moogo.switch import async_setup_entry
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
-from custom_components.moogo.const import DOMAIN
-from custom_components.moogo.switch import async_setup_entry
 
-
-async def test_switch_setup_authenticated(hass: HomeAssistant, mock_moogo_client) -> None:
+async def test_switch_setup_authenticated(
+    hass: HomeAssistant, mock_moogo_client
+) -> None:
     """Test switch setup with authentication."""
     config_entry = ConfigEntry(
         version=1,

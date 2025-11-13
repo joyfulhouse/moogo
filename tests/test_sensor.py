@@ -1,15 +1,14 @@
 """Test the Moogo sensor platform."""
+
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
-import pytest
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
-from homeassistant.core import HomeAssistant
+from unittest.mock import MagicMock
 
 from custom_components.moogo.const import DOMAIN
 from custom_components.moogo.sensor import async_setup_entry
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
+from homeassistant.core import HomeAssistant
 
 
 async def test_sensor_setup_public_only(hass: HomeAssistant, mock_moogo_client) -> None:
@@ -51,7 +50,9 @@ async def test_sensor_setup_public_only(hass: HomeAssistant, mock_moogo_client) 
     assert any("API Status" in e._attr_name for e in entities)
 
 
-async def test_sensor_setup_authenticated(hass: HomeAssistant, mock_moogo_client) -> None:
+async def test_sensor_setup_authenticated(
+    hass: HomeAssistant, mock_moogo_client
+) -> None:
     """Test sensor setup with authentication."""
     config_entry = ConfigEntry(
         version=1,
@@ -89,9 +90,7 @@ async def test_sensor_setup_authenticated(hass: HomeAssistant, mock_moogo_client
                 "water_level": 1,
             }
         },
-        "device_schedules": {
-            "device_1": {"items": []}
-        },
+        "device_schedules": {"device_1": {"items": []}},
     }
     mock_coordinator.last_update_success = True
     config_entry.runtime_data = mock_coordinator

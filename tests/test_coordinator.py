@@ -1,20 +1,22 @@
 """Test the Moogo coordinator."""
+
 from __future__ import annotations
 
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from custom_components.moogo.const import DOMAIN
+from custom_components.moogo.coordinator import MoogoCoordinator
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from custom_components.moogo.const import DOMAIN
-from custom_components.moogo.coordinator import MoogoCoordinator
 
-
-async def test_coordinator_update_authenticated(hass: HomeAssistant, mock_moogo_client) -> None:
+async def test_coordinator_update_authenticated(
+    hass: HomeAssistant, mock_moogo_client
+) -> None:
     """Test coordinator data update with authentication."""
     config_entry = ConfigEntry(
         version=1,
@@ -40,7 +42,9 @@ async def test_coordinator_update_authenticated(hass: HomeAssistant, mock_moogo_
     assert coordinator.data["auth_status"] == "authenticated"
 
 
-async def test_coordinator_update_public_only(hass: HomeAssistant, mock_moogo_client) -> None:
+async def test_coordinator_update_public_only(
+    hass: HomeAssistant, mock_moogo_client
+) -> None:
     """Test coordinator data update with public data only."""
     mock_moogo_client.is_authenticated = False
 
@@ -93,7 +97,9 @@ async def test_coordinator_update_failure(hass: HomeAssistant) -> None:
         await coordinator.async_config_entry_first_refresh()
 
 
-async def test_coordinator_dynamic_interval(hass: HomeAssistant, mock_moogo_client) -> None:
+async def test_coordinator_dynamic_interval(
+    hass: HomeAssistant, mock_moogo_client
+) -> None:
     """Test coordinator adjusts update interval based on auth status."""
     config_entry = ConfigEntry(
         version=1,

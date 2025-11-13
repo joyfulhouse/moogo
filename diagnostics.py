@@ -1,4 +1,5 @@
 """Diagnostics support for Moogo integration."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -37,9 +38,11 @@ async def async_get_config_entry_diagnostics(
         },
         "coordinator_data": {
             "last_update_success": coordinator.last_update_success,
-            "last_update_time": coordinator.last_update_success_time.isoformat()
-            if coordinator.last_update_success_time
-            else None,
+            "last_update_time": (
+                coordinator.last_update_success_time.isoformat()
+                if coordinator.last_update_success_time
+                else None
+            ),
             "update_interval": coordinator.update_interval.total_seconds(),
             "auth_status": coordinator.data.get("auth_status", "unknown"),
         },
@@ -63,7 +66,9 @@ async def async_get_config_entry_diagnostics(
             )
             device_info = {
                 "device_name": device.get("deviceName", "Unknown"),
-                "online_status": device_status.get("onlineStatus") if device_status else None,
+                "online_status": (
+                    device_status.get("onlineStatus") if device_status else None
+                ),
                 "firmware": device_status.get("firmware") if device_status else None,
                 "model": device.get("model", "Unknown"),
             }

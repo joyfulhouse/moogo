@@ -1,12 +1,11 @@
 """Common fixtures for Moogo tests."""
+
 from __future__ import annotations
 
 from collections.abc import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.core import HomeAssistant
-
 from custom_components.moogo.const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
 
 
@@ -27,24 +26,18 @@ def mock_moogo_client():
         mock_client.is_authenticated = True
         mock_client.test_connection = AsyncMock(return_value=True)
         mock_client.authenticate = AsyncMock(return_value=True)
-        mock_client.get_liquid_types = AsyncMock(return_value=[
-            {"liquidName": "Type 1"},
-            {"liquidName": "Type 2"}
-        ])
-        mock_client.get_recommended_schedules = AsyncMock(return_value=[
-            {"title": "Schedule 1"},
-            {"title": "Schedule 2"}
-        ])
-        mock_client.get_devices = AsyncMock(return_value=[
-            {
-                "deviceId": "test_device_1",
-                "deviceName": "Test Device 1"
-            }
-        ])
-        mock_client.get_device_status = AsyncMock(return_value={
-            "onlineStatus": 1,
-            "runStatus": 0
-        })
+        mock_client.get_liquid_types = AsyncMock(
+            return_value=[{"liquidName": "Type 1"}, {"liquidName": "Type 2"}]
+        )
+        mock_client.get_recommended_schedules = AsyncMock(
+            return_value=[{"title": "Schedule 1"}, {"title": "Schedule 2"}]
+        )
+        mock_client.get_devices = AsyncMock(
+            return_value=[{"deviceId": "test_device_1", "deviceName": "Test Device 1"}]
+        )
+        mock_client.get_device_status = AsyncMock(
+            return_value={"onlineStatus": 1, "runStatus": 0}
+        )
         mock_client_class.return_value = mock_client
         yield mock_client
 
@@ -59,10 +52,7 @@ def mock_config_entry():
         minor_version=0,
         domain=DOMAIN,
         title="Moogo (test@example.com)",
-        data={
-            CONF_EMAIL: "test@example.com",
-            CONF_PASSWORD: "test_password"
-        },
+        data={CONF_EMAIL: "test@example.com", CONF_PASSWORD: "test_password"},
         source="user",
         entry_id="test_entry_id",
         unique_id="test@example.com",

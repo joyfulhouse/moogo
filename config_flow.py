@@ -1,18 +1,19 @@
 """Config flow for Moogo integration."""
+
 from __future__ import annotations
 
 import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
-from .moogo_api import MoogoClient
 from .const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
+from .moogo_api import MoogoClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,12 +29,11 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
     from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
     session = async_get_clientsession(hass)
-    
+
     api = MoogoClient(
-        email=data.get(CONF_EMAIL),
-        password=data.get(CONF_PASSWORD),
-        session=session
+        email=data.get(CONF_EMAIL), password=data.get(CONF_PASSWORD), session=session
     )
 
     # Test public endpoints first (always works)
@@ -62,11 +62,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         if user_input is None:
             return self.async_show_form(
-                step_id="user", 
+                step_id="user",
                 data_schema=STEP_USER_DATA_SCHEMA,
                 description_placeholders={
                     "note": "Leave email and password empty for public data only (liquid types and schedules). Enter credentials for full device control."
-                }
+                },
             )
 
         errors = {}
@@ -98,12 +98,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={
                 "note": "Leave email and password empty for public data only (liquid types and schedules). Enter credentials for full device control."
-            }
+            },
         )
 
-    async def async_step_reauth(
-        self, entry_data: dict[str, Any]
-    ) -> FlowResult:
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> FlowResult:
         """Handle reauthentication when credentials expire or fail."""
         self.entry: ConfigEntry = self.hass.config_entries.async_get_entry(self.context["entry_id"])  # type: ignore[assignment]
         return await self.async_step_reauth_confirm()
@@ -159,7 +157,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_EMAIL, default=self.entry.data.get(CONF_EMAIL, "")): str,
+                    vol.Required(
+                        CONF_EMAIL, default=self.entry.data.get(CONF_EMAIL, "")
+                    ): str,
                     vol.Required(CONF_PASSWORD): str,
                 }
             ),
@@ -204,14 +204,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="reconfigure",
                 data_schema=vol.Schema(
                     {
-                        vol.Optional(CONF_EMAIL, default=user_input.get(CONF_EMAIL, "")): str,
+                        vol.Optional(
+                            CONF_EMAIL, default=user_input.get(CONF_EMAIL, "")
+                        ): str,
                         vol.Optional(CONF_PASSWORD, default=""): str,
                     }
                 ),
                 errors=errors,
                 description_placeholders={
                     "note": "Leave email and password empty for public data only (liquid types and schedules). Enter credentials for full device control."
-                }
+                },
             )
 
         # Show initial form with current settings
@@ -219,13 +221,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="reconfigure",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(CONF_EMAIL, default=entry.data.get(CONF_EMAIL, "")): str,
+                    vol.Optional(
+                        CONF_EMAIL, default=entry.data.get(CONF_EMAIL, "")
+                    ): str,
                     vol.Optional(CONF_PASSWORD, default=""): str,
                 }
             ),
             description_placeholders={
                 "note": "Leave email and password empty for public data only (liquid types and schedules). Enter credentials for full device control."
-            }
+            },
         )
 
 

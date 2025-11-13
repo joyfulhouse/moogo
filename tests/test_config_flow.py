@@ -1,19 +1,13 @@
 """Test the Moogo config flow."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
+from custom_components.moogo.const import DOMAIN
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
-
-from custom_components.moogo.config_flow import (
-    CannotConnect,
-    ConfigFlow,
-    InvalidAuth,
-)
-from custom_components.moogo.const import DOMAIN
 
 
 async def test_form(hass: HomeAssistant, mock_moogo_client) -> None:
@@ -73,9 +67,7 @@ async def test_user_public_data_only(hass: HomeAssistant, mock_moogo_client) -> 
 
 async def test_form_invalid_auth(hass: HomeAssistant) -> None:
     """Test we handle invalid auth."""
-    with patch(
-        "custom_components.moogo.config_flow.MoogoClient"
-    ) as mock_client_class:
+    with patch("custom_components.moogo.config_flow.MoogoClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client.test_connection = AsyncMock(return_value=True)
         mock_client.authenticate = AsyncMock(return_value=False)
@@ -99,9 +91,7 @@ async def test_form_invalid_auth(hass: HomeAssistant) -> None:
 
 async def test_form_cannot_connect(hass: HomeAssistant) -> None:
     """Test we handle cannot connect error."""
-    with patch(
-        "custom_components.moogo.config_flow.MoogoClient"
-    ) as mock_client_class:
+    with patch("custom_components.moogo.config_flow.MoogoClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client.test_connection = AsyncMock(return_value=False)
         mock_client_class.return_value = mock_client
@@ -124,9 +114,7 @@ async def test_form_cannot_connect(hass: HomeAssistant) -> None:
 
 async def test_form_unknown_exception(hass: HomeAssistant) -> None:
     """Test we handle unknown exceptions."""
-    with patch(
-        "custom_components.moogo.config_flow.MoogoClient"
-    ) as mock_client_class:
+    with patch("custom_components.moogo.config_flow.MoogoClient") as mock_client_class:
         mock_client_class.side_effect = Exception("Test exception")
 
         result = await hass.config_entries.flow.async_init(
