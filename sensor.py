@@ -32,7 +32,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Moogo sensor entities."""
-    coordinator: MoogoCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: MoogoCoordinator = config_entry.runtime_data
     
     entities = []
     
@@ -74,6 +74,8 @@ async def async_setup_entry(
 
 class MoogoBaseSensor(CoordinatorEntity, SensorEntity):
     """Base class for Moogo sensors."""
+
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator: MoogoCoordinator) -> None:
         """Initialize the sensor."""
@@ -177,6 +179,8 @@ class MoogoAPIStatusSensor(MoogoBaseSensor):
 # Device-specific sensors (require authentication)
 class MoogoDeviceSensor(CoordinatorEntity, SensorEntity):
     """Base class for device-specific sensors."""
+
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator: MoogoCoordinator, device_id: str, device_name: str) -> None:
         """Initialize the sensor."""

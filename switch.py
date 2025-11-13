@@ -23,7 +23,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Moogo switch entities."""
-    coordinator: MoogoCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: MoogoCoordinator = config_entry.runtime_data
     
     entities = []
     
@@ -43,13 +43,15 @@ async def async_setup_entry(
 class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
     """Switch entity for controlling spray functionality."""
 
+    _attr_has_entity_name = True
+
     def __init__(self, coordinator: MoogoCoordinator, device_id: str, device_name: str) -> None:
         """Initialize the switch."""
         super().__init__(coordinator)
         self.coordinator = coordinator
         self.device_id = device_id
         self.device_name = device_name
-        
+
         self._attr_name = f"{device_name} Spray"
         self._attr_unique_id = f"{device_id}_spray_switch"
         self._attr_icon = "mdi:spray"

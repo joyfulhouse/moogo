@@ -43,10 +43,7 @@ env/
 # DEVELOPMENT & TESTING
 # =============================================================================
 
-# Test files and directories
-tests/
-test_*.py
-*_test.py
+# Test artifacts (but not the tests/ directory itself)
 responses/
 test_data/
 *.test

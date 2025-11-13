@@ -19,17 +19,20 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Moogo from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
-
     # Initialize API client
     from homeassistant.helpers.aiohttp_client import async_get_clientsession
     session = async_get_clientsession(hass)
-    
+
     api = MoogoClient(
         email=entry.data.get(CONF_EMAIL),
         password=entry.data.get(CONF_PASSWORD),
         session=session
     )
+
+    # Test connection before setup (Bronze tier: test-before-setup)
+    if not await api.test_connection():
+        _LOGGER.error("Failed to connect to Moogo API during setup")
+        return False
 
     # Authenticate if credentials provided
     if entry.data.get(CONF_EMAIL) and entry.data.get(CONF_PASSWORD):
@@ -39,12 +42,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Initialize coordinator
     coordinator = MoogoCoordinator(hass, api, entry)
-    
+
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
 
-    # Store coordinator
-    hass.data[DOMAIN][entry.entry_id] = coordinator
+    # Store coordinator using runtime_data (Bronze tier: runtime-data)
+    entry.runtime_data = coordinator
 
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -54,7 +57,5 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unload_ok
+    # Unload platforms
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
