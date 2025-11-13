@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
-from custom_components.moogo.const import DOMAIN
-from custom_components.moogo.switch import async_setup_entry
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
+
+from const import DOMAIN
+from switch import async_setup_entry
 
 
 async def test_switch_setup_authenticated(

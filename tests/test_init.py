@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from custom_components.moogo import async_setup_entry, async_unload_entry
-from custom_components.moogo.const import DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import __init__ as moogo_init  # noqa: E402
+from const import DOMAIN  # noqa: E402
+
+async_setup_entry = moogo_init.async_setup_entry
+async_unload_entry = moogo_init.async_unload_entry
 
 
 async def test_setup_entry_success(hass: HomeAssistant, mock_moogo_client) -> None:
@@ -28,10 +36,8 @@ async def test_setup_entry_success(hass: HomeAssistant, mock_moogo_client) -> No
     )
 
     with (
-        patch("custom_components.moogo.MoogoClient", return_value=mock_moogo_client),
-        patch(
-            "custom_components.moogo.coordinator.MoogoCoordinator"
-        ) as mock_coordinator_class,
+        patch("__init__.MoogoClient", return_value=mock_moogo_client),
+        patch("coordinator.MoogoCoordinator") as mock_coordinator_class,
     ):
         mock_coordinator = MagicMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
@@ -63,7 +69,7 @@ async def test_setup_entry_auth_failure(hass: HomeAssistant) -> None:
         unique_id="test@example.com",
     )
 
-    with patch("custom_components.moogo.MoogoClient") as mock_client_class:
+    with patch("__init__.MoogoClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.test_connection = AsyncMock(return_value=True)
         mock_client.authenticate = AsyncMock(return_value=False)
@@ -89,7 +95,7 @@ async def test_setup_entry_connection_failure(hass: HomeAssistant) -> None:
         unique_id="test@example.com",
     )
 
-    with patch("custom_components.moogo.MoogoClient") as mock_client_class:
+    with patch("__init__.MoogoClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.test_connection = AsyncMock(return_value=False)
         mock_client_class.return_value = mock_client
@@ -116,10 +122,8 @@ async def test_setup_entry_public_data_only(
     mock_moogo_client.is_authenticated = False
 
     with (
-        patch("custom_components.moogo.MoogoClient", return_value=mock_moogo_client),
-        patch(
-            "custom_components.moogo.coordinator.MoogoCoordinator"
-        ) as mock_coordinator_class,
+        patch("__init__.MoogoClient", return_value=mock_moogo_client),
+        patch("coordinator.MoogoCoordinator") as mock_coordinator_class,
     ):
         mock_coordinator = MagicMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()

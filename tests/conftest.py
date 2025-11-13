@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Generator
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from custom_components.moogo.const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
+
+# Add parent directory to path to import moogo modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
 
 
 @pytest.fixture

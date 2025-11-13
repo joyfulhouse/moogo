@@ -37,7 +37,12 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["custom_components.moogo"]
+py-modules = []
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["moogo_api*"]
+namespaces = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
