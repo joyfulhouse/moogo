@@ -16,6 +16,9 @@ from .coordinator import MoogoCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+# Limit parallel updates to prevent overwhelming the API
+PARALLEL_UPDATES = 1
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -51,6 +54,7 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
         self.coordinator = coordinator
         self.device_id = device_id
         self.device_name = device_name
+        self._was_available: bool | None = None
 
         self._attr_name = f"{device_name} Spray"
         self._attr_unique_id = f"{device_id}_spray_switch"
@@ -70,11 +74,33 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         device_status = self.coordinator.data.get("device_statuses", {}).get(self.device_id)
+        is_available = False
+
         # Check if device is online and API is authenticated
         if device_status and self.coordinator.api.is_authenticated:
             online_status = device_status.get("onlineStatus", 0)
-            return online_status == 1 and self.coordinator.last_update_success
-        return False
+            is_available = online_status == 1 and self.coordinator.last_update_success
+
+        # Log availability changes with detailed reasons
+        if self._was_available is not None and self._was_available != is_available:
+            if is_available:
+                _LOGGER.info(f"{self.device_name} spray switch is now available")
+            else:
+                # Determine reason for unavailability
+                if not self.coordinator.api.is_authenticated:
+                    reason = "API not authenticated"
+                elif not self.coordinator.last_update_success:
+                    reason = "coordinator update failed"
+                elif device_status is None:
+                    reason = "device status unavailable"
+                elif device_status.get("onlineStatus", 0) != 1:
+                    reason = "device offline"
+                else:
+                    reason = "unknown"
+                _LOGGER.warning(f"{self.device_name} spray switch is now unavailable ({reason})")
+
+        self._was_available = is_available
+        return is_available
 
     @property
     def is_on(self) -> bool | None:

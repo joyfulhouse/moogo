@@ -25,6 +25,9 @@ from .coordinator import MoogoCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+# Limit parallel updates to prevent overwhelming the API
+PARALLEL_UPDATES = 1
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -81,11 +84,22 @@ class MoogoBaseSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.coordinator = coordinator
+        self._was_available: bool | None = None
 
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        return self.coordinator.last_update_success
+        is_available = self.coordinator.last_update_success
+
+        # Log availability changes
+        if self._was_available is not None and self._was_available != is_available:
+            if is_available:
+                _LOGGER.debug(f"{self.name} is now available")
+            else:
+                _LOGGER.warning(f"{self.name} is now unavailable (coordinator update failed)")
+
+        self._was_available = is_available
+        return is_available
 
 
 # Public Data Sensors
@@ -188,6 +202,7 @@ class MoogoDeviceSensor(CoordinatorEntity, SensorEntity):
         self.device_id = device_id
         self.device_name = device_name
         self.coordinator = coordinator
+        self._was_available: bool | None = None
 
     @property
     def device_info(self) -> Dict[str, Any]:
@@ -198,19 +213,36 @@ class MoogoDeviceSensor(CoordinatorEntity, SensorEntity):
             "manufacturer": "Moogo",
             "model": "Smart Spray Device",
         }
-        
+
         # Add firmware version if available from device status
         device_status = self.coordinator.data.get("device_statuses", {}).get(self.device_id)
         if device_status and "firmware" in device_status:
             device_info["sw_version"] = device_status["firmware"]
-            
+
         return device_info
 
     @property
     def available(self) -> bool:
         """Return if entity is available."""
         device_status = self.coordinator.data.get("device_statuses", {}).get(self.device_id)
-        return device_status is not None and self.coordinator.last_update_success
+        is_available = device_status is not None and self.coordinator.last_update_success
+
+        # Log availability changes with reasons
+        if self._was_available is not None and self._was_available != is_available:
+            if is_available:
+                _LOGGER.info(f"{self.device_name} sensor {self.name} is now available")
+            else:
+                # Determine reason for unavailability
+                if not self.coordinator.last_update_success:
+                    reason = "coordinator update failed"
+                elif device_status is None:
+                    reason = "device status unavailable"
+                else:
+                    reason = "unknown"
+                _LOGGER.warning(f"{self.device_name} sensor {self.name} is now unavailable ({reason})")
+
+        self._was_available = is_available
+        return is_available
 
 
 class MoogoDeviceStatusSensor(MoogoDeviceSensor):

@@ -93,12 +93,77 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(
-            step_id="user", 
-            data_schema=STEP_USER_DATA_SCHEMA, 
+            step_id="user",
+            data_schema=STEP_USER_DATA_SCHEMA,
             errors=errors,
             description_placeholders={
                 "note": "Leave email and password empty for public data only (liquid types and schedules). Enter credentials for full device control."
             }
+        )
+
+    async def async_step_reauth(
+        self, entry_data: dict[str, Any]
+    ) -> FlowResult:
+        """Handle reauthentication when credentials expire or fail."""
+        self.entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle reauthentication confirmation."""
+        errors = {}
+
+        if user_input is not None:
+            # Validate the new credentials
+            try:
+                # Get existing email from entry if not provided
+                email = user_input.get(CONF_EMAIL) or self.entry.data.get(CONF_EMAIL)
+                password = user_input.get(CONF_PASSWORD)
+
+                if not email or not password:
+                    errors["base"] = "invalid_auth"
+                else:
+                    # Validate credentials
+                    validation_data = {
+                        CONF_EMAIL: email,
+                        CONF_PASSWORD: password,
+                    }
+                    await validate_input(self.hass, validation_data)
+
+                    # Update the config entry with new credentials
+                    self.hass.config_entries.async_update_entry(
+                        self.entry,
+                        data={
+                            **self.entry.data,
+                            CONF_EMAIL: email,
+                            CONF_PASSWORD: password,
+                        },
+                    )
+
+                    # Reload the config entry to apply new credentials
+                    await self.hass.config_entries.async_reload(self.entry.entry_id)
+
+                    return self.async_abort(reason="reauth_successful")
+
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception during reauth")
+                errors["base"] = "unknown"
+
+        # Show the reauth form
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_EMAIL, default=self.entry.data.get(CONF_EMAIL, "")): str,
+                    vol.Required(CONF_PASSWORD): str,
+                }
+            ),
+            errors=errors,
         )
 
 

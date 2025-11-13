@@ -23,10 +23,11 @@ class MoogoCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self.api = api
         self.entry = entry
         self._last_device_count = 0
-        
+        self._device_availability: Dict[str, bool] = {}  # Track device availability states
+
         # Dynamic update interval based on authentication status
         update_interval = self._get_update_interval()
-        
+
         super().__init__(
             hass,
             _LOGGER,
@@ -76,14 +77,28 @@ class MoogoCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     for device in devices:
                         device_id = device.get("deviceId")
                         device_name = device.get("deviceName", f"Device {device_id}")
-                        
+
                         if device_id:
                             # Get device status
                             status = await self.api.get_device_status(device_id)
                             if status:
                                 device_statuses[device_id] = status
                                 _LOGGER.debug(f"Updated status for {device_name} ({device_id})")
-                            
+
+                                # Track device availability changes
+                                is_available = status.get("onlineStatus") == 1
+                                previous_availability = self._device_availability.get(device_id)
+
+                                # Log availability changes
+                                if previous_availability is not None and previous_availability != is_available:
+                                    if is_available:
+                                        _LOGGER.info(f"Device {device_name} ({device_id}) is now ONLINE")
+                                    else:
+                                        _LOGGER.warning(f"Device {device_name} ({device_id}) is now OFFLINE")
+
+                                # Update tracked availability
+                                self._device_availability[device_id] = is_available
+
                             # Get device schedules
                             schedules = await self.api.get_device_schedules(device_id)
                             if schedules:
