@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -123,7 +123,7 @@ class MoogoLiquidTypesSensor(MoogoBaseSensor):
         return "0"
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes."""
         liquid_types = self.coordinator.data.get("liquid_types", [])
         if liquid_types:
@@ -153,7 +153,7 @@ class MoogoScheduleTemplatesSensor(MoogoBaseSensor):
         return "0"
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes."""
         schedules = self.coordinator.data.get("recommended_schedules", [])
         if schedules:
@@ -183,7 +183,7 @@ class MoogoAPIStatusSensor(MoogoBaseSensor):
         return "Disconnected"
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes."""
         return {
             "authenticated": self.coordinator.api.is_authenticated,
@@ -207,7 +207,7 @@ class MoogoDeviceSensor(CoordinatorEntity, SensorEntity):
         self._was_available: bool | None = None
 
     @property
-    def device_info(self) -> Dict[str, Any]:
+    def device_info(self) -> dict[str, Any]:
         """Return device information."""
         device_info = {
             "identifiers": {(DOMAIN, self.device_id)},
@@ -408,7 +408,7 @@ class MoogoDeviceSchedulesSensor(MoogoDeviceSensor):
         return 0
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes."""
         schedules_data = self.coordinator.data.get("device_schedules", {}).get(self.device_id, [])
         if schedules_data:
@@ -475,7 +475,7 @@ class MoogoDeviceLastSpraySensor(MoogoDeviceSensor):
         return None
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes."""
         device_status = self.coordinator.data.get("device_statuses", {}).get(self.device_id)
         if device_status:

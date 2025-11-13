@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -15,15 +15,15 @@ from .const import DEFAULT_UPDATE_INTERVAL, PUBLIC_DATA_UPDATE_INTERVAL
 _LOGGER = logging.getLogger(__name__)
 
 
-class MoogoCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
+class MoogoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Moogo data update coordinator."""
 
     def __init__(self, hass: HomeAssistant, api: MoogoClient, entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
-        self.api = api
-        self.entry = entry
-        self._last_device_count = 0
-        self._device_availability: Dict[str, bool] = {}  # Track device availability states
+        self.api: MoogoClient = api
+        self.entry: ConfigEntry = entry
+        self._last_device_count: int = 0
+        self._device_availability: dict[str, bool] = {}  # Track device availability states
 
         # Dynamic update interval based on authentication status
         update_interval = self._get_update_interval()
@@ -42,10 +42,10 @@ class MoogoCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         else:
             return PUBLIC_DATA_UPDATE_INTERVAL
 
-    async def _async_update_data(self) -> Dict[str, Any]:
+    async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from Moogo API."""
         try:
-            data = {}
+            data: dict[str, Any] = {}
             
             # Always fetch public data
             data["liquid_types"] = await self.api.get_liquid_types()
@@ -65,9 +65,9 @@ class MoogoCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 
                 # Get detailed information for each device
                 if devices:
-                    device_statuses = {}
-                    device_schedules = {}
-                    device_count = len(devices)
+                    device_statuses: dict[str, Any] = {}
+                    device_schedules: dict[str, Any] = {}
+                    device_count: int = len(devices)
                     
                     # Log if device count changed
                     if device_count != self._last_device_count:

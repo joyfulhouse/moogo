@@ -54,7 +54,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Moogo."""
 
-    VERSION = 1
+    VERSION: int = 1
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -105,7 +105,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, entry_data: dict[str, Any]
     ) -> FlowResult:
         """Handle reauthentication when credentials expire or fail."""
-        self.entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        self.entry: ConfigEntry = self.hass.config_entries.async_get_entry(self.context["entry_id"])  # type: ignore[assignment]
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(

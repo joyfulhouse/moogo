@@ -14,7 +14,7 @@ API Discovery Results:
 
 import logging
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Final
 from datetime import datetime, timedelta
 
 import aiohttp
@@ -58,11 +58,11 @@ class MoogoClient:
     """
     
     # API Configuration
-    DEFAULT_BASE_URL = "https://api.moogo.com"
-    DEFAULT_TIMEOUT = 30
-    
+    DEFAULT_BASE_URL: Final = "https://api.moogo.com"
+    DEFAULT_TIMEOUT: Final = 30
+
     # API Endpoints (discovered from Android app analysis)
-    ENDPOINTS = {
+    ENDPOINTS: Final[dict[str, str]] = {
         # Authentication
         "login": "v1/user/login",
         
@@ -96,63 +96,63 @@ class MoogoClient:
     }
     
     # Response Codes
-    SUCCESS_CODE = 0
-    AUTH_INVALID_CODE = 10104
-    RATE_LIMITED_CODE = 10000
-    DEVICE_OFFLINE_CODE = 10201
-    SERVER_ERROR_CODE = 500
-    UNAUTHORIZED_CODE = 401
+    SUCCESS_CODE: Final = 0
+    AUTH_INVALID_CODE: Final = 10104
+    RATE_LIMITED_CODE: Final = 10000
+    DEVICE_OFFLINE_CODE: Final = 10201
+    SERVER_ERROR_CODE: Final = 500
+    UNAUTHORIZED_CODE: Final = 401
     
     def __init__(
         self,
-        email: Optional[str] = None,
-        password: Optional[str] = None,
+        email: str | None = None,
+        password: str | None = None,
         base_url: str = DEFAULT_BASE_URL,
-        session: Optional[ClientSession] = None,
-        timeout: int = DEFAULT_TIMEOUT
-    ):
+        session: ClientSession | None = None,
+        timeout: int = DEFAULT_TIMEOUT,
+    ) -> None:
         """
         Initialize Moogo API client.
-        
+
         Args:
             email: User email for authentication
-            password: User password for authentication  
+            password: User password for authentication
             base_url: API base URL (default: https://api.moogo.com)
             session: Optional aiohttp session (will create if None)
             timeout: Request timeout in seconds
         """
-        self.base_url = base_url.rstrip('/')
-        self.email = email
-        self.password = password
-        self.timeout = ClientTimeout(total=timeout)
-        
+        self.base_url: str = base_url.rstrip('/')
+        self.email: str | None = email
+        self.password: str | None = password
+        self.timeout: ClientTimeout = ClientTimeout(total=timeout)
+
         # Session management
-        self._session = session
-        self._session_owner = session is None
-        
+        self._session: ClientSession | None = session
+        self._session_owner: bool = session is None
+
         # Authentication state
-        self._token: Optional[str] = None
-        self._user_id: Optional[str] = None
-        self._token_expires: Optional[datetime] = None
-        self._authenticated = False
-        
+        self._token: str | None = None
+        self._user_id: str | None = None
+        self._token_expires: datetime | None = None
+        self._authenticated: bool = False
+
         # Cache for device list
-        self._devices_cache: Optional[List[Dict[str, Any]]] = None
-        self._devices_cache_time: Optional[datetime] = None
-        self._devices_cache_ttl = timedelta(minutes=5)
+        self._devices_cache: list[dict[str, Any]] | None = None
+        self._devices_cache_time: datetime | None = None
+        self._devices_cache_ttl: timedelta = timedelta(minutes=5)
     
-    async def __aenter__(self):
+    async def __aenter__(self) -> "MoogoClient":
         """Async context manager entry."""
         if self._session is None:
             self._session = aiohttp.ClientSession(timeout=self.timeout)
         return self
-    
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit."""
         del exc_type, exc_val, exc_tb  # Unused parameters
         await self.close()
-    
-    async def close(self):
+
+    async def close(self) -> None:
         """Close the client and cleanup resources."""
         if self._session_owner and self._session:
             await self._session.close()
@@ -174,17 +174,17 @@ class MoogoClient:
             (self._token_expires is None or datetime.now() < self._token_expires)
         )
     
-    def _get_headers(self, authenticated: bool = True) -> Dict[str, str]:
+    def _get_headers(self, authenticated: bool = True) -> dict[str, str]:
         """Get request headers."""
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
             "User-Agent": "Moogo API Client/1.0"
         }
-        
+
         if authenticated and self._token:
             headers["token"] = self._token
-            
+
         return headers
     
     async def _request(
@@ -193,8 +193,8 @@ class MoogoClient:
         endpoint: str,
         authenticated: bool = True,
         retry_auth: bool = True,
-        **kwargs
-    ) -> Dict[str, Any]:
+        **kwargs: Any,
+    ) -> dict[str, Any]:
         """
         Make API request with error handling and automatic reauthentication.
         
@@ -285,7 +285,7 @@ class MoogoClient:
         except aiohttp.ClientError as e:
             raise MoogoAPIError(f"Request failed: {e}")
     
-    async def authenticate(self, email: Optional[str] = None, password: Optional[str] = None) -> bool:
+    async def authenticate(self, email: str | None = None, password: str | None = None) -> bool:
         """
         Authenticate with Moogo API.
         
@@ -338,7 +338,7 @@ class MoogoClient:
         except Exception as e:
             raise MoogoAuthError(f"Authentication failed: {e}")
     
-    async def get_devices(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
+    async def get_devices(self, force_refresh: bool = False) -> list[dict[str, Any]]:
         """
         Get list of user's devices.
         
@@ -370,7 +370,7 @@ class MoogoClient:
         
         return devices
     
-    async def get_device_status(self, device_id: str) -> Dict[str, Any]:
+    async def get_device_status(self, device_id: str) -> dict[str, Any]:
         """
         Get detailed device status.
         
@@ -387,7 +387,7 @@ class MoogoClient:
         response = await self._request("GET", endpoint)
         return response.get("data", {})
     
-    async def start_spray(self, device_id: str, mode: Optional[str] = None) -> bool:
+    async def start_spray(self, device_id: str, mode: str | None = None) -> bool:
         """
         Start device spray/misting.
         
@@ -433,7 +433,7 @@ class MoogoClient:
         except Exception as e:
             raise MoogoDeviceError(f"Failed to start spray: {e}")
     
-    async def stop_spray(self, device_id: str, mode: Optional[str] = None) -> bool:
+    async def stop_spray(self, device_id: str, mode: str | None = None) -> bool:
         """
         Stop device spray/misting.
         
@@ -473,7 +473,7 @@ class MoogoClient:
     
     # Public API endpoints (no authentication required)
     
-    async def get_liquid_types(self) -> List[Dict[str, Any]]:
+    async def get_liquid_types(self) -> list[dict[str, Any]]:
         """
         Get available liquid concentrate types (public endpoint).
         
@@ -487,7 +487,7 @@ class MoogoClient:
         )
         return response.get("data", [])
     
-    async def get_recommended_schedules(self) -> List[Dict[str, Any]]:
+    async def get_recommended_schedules(self) -> list[dict[str, Any]]:
         """
         Get recommended spray schedules (public endpoint).
         
@@ -501,7 +501,7 @@ class MoogoClient:
         )
         return response.get("data", {}).get("items", [])
     
-    async def get_device_schedules(self, device_id: str) -> Dict[str, Any]:
+    async def get_device_schedules(self, device_id: str) -> dict[str, Any]:
         """
         Get device-specific schedules with duration information.
         
@@ -567,11 +567,11 @@ class MoogoClient:
         self,
         device_id: str,
         schedule_id: str,
-        hour: Optional[int] = None,
-        minute: Optional[int] = None,
-        duration: Optional[int] = None,
-        repeat_set: Optional[str] = None,
-        status: Optional[int] = None
+        hour: int | None = None,
+        minute: int | None = None,
+        duration: int | None = None,
+        repeat_set: str | None = None,
+        status: int | None = None,
     ) -> bool:
         """
         Update an existing schedule.
@@ -744,7 +744,7 @@ class MoogoClient:
 
 # Convenience functions for quick testing
 
-async def quick_test(email: str, password: str) -> Dict[str, Any]:
+async def quick_test(email: str, password: str) -> dict[str, Any]:
     """
     Quick test of API functionality.
     

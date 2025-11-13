@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -61,7 +61,7 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
         self._attr_icon = "mdi:spray"
 
     @property
-    def device_info(self) -> Dict[str, Any]:
+    def device_info(self) -> dict[str, Any]:
         """Return device information."""
         return {
             "identifiers": {(DOMAIN, self.device_id)},
@@ -226,7 +226,7 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
             _LOGGER.error(f"Error stopping spray for {self.device_name}: {e}")
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes."""
         device_status = self.coordinator.data.get("device_statuses", {}).get(self.device_id)
         if device_status:
