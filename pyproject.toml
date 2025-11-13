@@ -43,11 +43,11 @@ packages = ["custom_components.moogo"]
 testpaths = ["tests"]
 norecursedirs = [".git", "testing_config"]
 asyncio_mode = "auto"
-addopts = "--cov=custom_components/moogo --cov-report=term-missing --cov-report=html"
+addopts = "--cov=. --cov-report=term-missing --cov-report=html"
 
 [tool.coverage.run]
-source = ["custom_components/moogo"]
-omit = ["tests/*", "custom_components/moogo/__pycache__/*"]
+source = ["."]
+omit = ["tests/*", "setup.py", "conftest.py", "*__pycache__*"]
 
 [tool.coverage.report]
 exclude_lines = [
