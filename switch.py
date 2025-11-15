@@ -59,7 +59,7 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
         self.device_name = device_name
         self._was_available: bool | None = None
 
-        self._attr_name = f"{device_name} Spray"
+        self._attr_name = "Spray"
         self._attr_unique_id = f"{device_id}_spray_switch"
         self._attr_icon = "mdi:spray"
 

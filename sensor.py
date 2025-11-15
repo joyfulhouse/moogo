@@ -292,7 +292,7 @@ class MoogoDeviceStatusSensor(MoogoDeviceSensor):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id, device_name)
-        self._attr_name = f"{device_name} Status"
+        self._attr_name = "Status"
         self._attr_unique_id = f"{device_id}_status"
         self._attr_icon = "mdi:power-settings"
 
@@ -316,7 +316,7 @@ class MoogoDeviceLiquidLevelSensor(MoogoDeviceSensor):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id, device_name)
-        self._attr_name = f"{device_name} Liquid Level"
+        self._attr_name = "Liquid Level"
         self._attr_unique_id = f"{device_id}_liquid_level"
         self._attr_icon = "mdi:cup-water"
         # Remove unit and state class for text sensor
@@ -346,7 +346,7 @@ class MoogoDeviceWaterLevelSensor(MoogoDeviceSensor):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id, device_name)
-        self._attr_name = f"{device_name} Water Level"
+        self._attr_name = "Water Level"
         self._attr_unique_id = f"{device_id}_water_level"
         self._attr_icon = "mdi:water-percent"
         # Remove unit and state class for text sensor
@@ -376,7 +376,7 @@ class MoogoDeviceTemperatureSensor(MoogoDeviceSensor):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id, device_name)
-        self._attr_name = f"{device_name} Temperature"
+        self._attr_name = "Temperature"
         self._attr_unique_id = f"{device_id}_temperature"
         self._attr_device_class = SensorDeviceClass.TEMPERATURE
         self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -401,7 +401,7 @@ class MoogoDeviceHumiditySensor(MoogoDeviceSensor):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id, device_name)
-        self._attr_name = f"{device_name} Humidity"
+        self._attr_name = "Humidity"
         self._attr_unique_id = f"{device_id}_humidity"
         self._attr_device_class = SensorDeviceClass.HUMIDITY
         self._attr_native_unit_of_measurement = PERCENTAGE
@@ -426,7 +426,7 @@ class MoogoDeviceSignalStrengthSensor(MoogoDeviceSensor):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id, device_name)
-        self._attr_name = f"{device_name} Signal Strength"
+        self._attr_name = "Signal Strength"
         self._attr_unique_id = f"{device_id}_signal_strength"
         self._attr_device_class = SensorDeviceClass.SIGNAL_STRENGTH
         self._attr_native_unit_of_measurement = SIGNAL_STRENGTH_DECIBELS_MILLIWATT
@@ -452,7 +452,7 @@ class MoogoDeviceSchedulesSensor(MoogoDeviceSensor):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id, device_name)
-        self._attr_name = f"{device_name} Active Schedules"
+        self._attr_name = "Active Schedules"
         self._attr_unique_id = f"{device_id}_active_schedules"
         self._attr_icon = "mdi:calendar-check"
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -533,7 +533,7 @@ class MoogoDeviceLastSpraySensor(MoogoDeviceSensor):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device_id, device_name)
-        self._attr_name = f"{device_name} Last Spray"
+        self._attr_name = "Last Spray"
         self._attr_unique_id = f"{device_id}_last_spray"
         self._attr_icon = "mdi:spray-bottle"
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
