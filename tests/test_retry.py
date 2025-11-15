@@ -267,6 +267,4 @@ async def test_retry_decorator_with_args_and_kwargs() -> None:
     result = await decorated("arg1", "arg2", kwarg1="value1", kwarg2="value2")
 
     assert result == "success"
-    mock_func.assert_called_once_with(
-        "arg1", "arg2", kwarg1="value1", kwarg2="value2"
-    )
+    mock_func.assert_called_once_with("arg1", "arg2", kwarg1="value1", kwarg2="value2")
