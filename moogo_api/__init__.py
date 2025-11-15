@@ -12,9 +12,10 @@ from .client import (
     MoogoDeviceError,
     MoogoRateLimitError,
     quick_test,
+    retry_with_backoff,
 )
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __all__ = [
     "MoogoClient",
     "MoogoAPIError",
@@ -22,4 +23,5 @@ __all__ = [
     "MoogoDeviceError",
     "MoogoRateLimitError",
     "quick_test",
+    "retry_with_backoff",
 ]
