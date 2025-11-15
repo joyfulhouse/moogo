@@ -4,7 +4,6 @@ import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
 from custom_components.moogo.moogo_api import (
     MoogoAPIError,
     MoogoAuthError,
