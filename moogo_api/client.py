@@ -15,12 +15,16 @@ API Discovery Results:
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Final
+from functools import wraps
+from typing import Any, Callable, Final, TypeVar, cast
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
 _LOGGER = logging.getLogger(__name__)
+
+# Type variable for generic retry decorator
+T = TypeVar("T")
 
 
 class MoogoAPIError(Exception):
@@ -45,6 +49,89 @@ class MoogoRateLimitError(MoogoAPIError):
     """Rate limiting errors."""
 
     pass
+
+
+def retry_with_backoff(
+    max_attempts: int = 3,
+    initial_delay: float = 1.0,
+    backoff_factor: float = 2.0,
+    retry_on: tuple[type[Exception], ...] = (MoogoDeviceError, MoogoAuthError),
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """
+    Decorator for retrying async functions with exponential backoff.
+
+    Implements exponential backoff retry strategy for handling transient failures
+    in API calls. Complies with HomeAssistant Platinum tier requirements for
+    robust error handling.
+
+    Args:
+        max_attempts: Maximum number of retry attempts (default: 3)
+        initial_delay: Initial delay in seconds before first retry (default: 1.0)
+        backoff_factor: Multiplier for delay between retries (default: 2.0)
+        retry_on: Tuple of exception types to retry on
+
+    Returns:
+        Decorated function with retry logic
+
+    Example:
+        @retry_with_backoff(max_attempts=3, initial_delay=1.0, backoff_factor=2.0)
+        async def get_device_status(device_id: str) -> dict[str, Any]:
+            ...
+    """
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        @wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            last_exception: Exception | None = None
+            delay = initial_delay
+
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return await func(*args, **kwargs)
+                except retry_on as e:
+                    last_exception = e
+
+                    # Don't retry on rate limit errors (24-hour lockout)
+                    if isinstance(e, MoogoRateLimitError):
+                        _LOGGER.error(
+                            f"Rate limit error in {func.__name__}, not retrying: {e}"
+                        )
+                        raise
+
+                    # Don't retry if this is the last attempt
+                    if attempt >= max_attempts:
+                        _LOGGER.error(
+                            f"Max retry attempts ({max_attempts}) reached for {func.__name__}: {e}"
+                        )
+                        break
+
+                    # Log retry attempt with backoff time
+                    _LOGGER.warning(
+                        f"Attempt {attempt}/{max_attempts} failed for {func.__name__}: {e}. "
+                        f"Retrying in {delay:.1f}s..."
+                    )
+
+                    # Wait before retrying with exponential backoff
+                    await asyncio.sleep(delay)
+                    delay *= backoff_factor
+
+                except Exception as e:
+                    # Don't retry on unexpected exceptions
+                    _LOGGER.error(
+                        f"Unexpected error in {func.__name__}, not retrying: {e}"
+                    )
+                    raise
+
+            # If we've exhausted all retries, raise the last exception
+            if last_exception:
+                raise last_exception
+
+            # This should never happen, but for type safety
+            raise MoogoAPIError(f"Retry logic failed for {func.__name__}")
+
+        return wrapper
+
+    return decorator
 
 
 class MoogoClient:
@@ -402,15 +489,31 @@ class MoogoClient:
 
         return devices
 
+    @retry_with_backoff(
+        max_attempts=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        retry_on=(MoogoDeviceError, MoogoAuthError, MoogoAPIError),
+    )
     async def get_device_status(self, device_id: str) -> dict[str, Any]:
         """
-        Get detailed device status.
+        Get detailed device status with automatic retry on transient failures.
+
+        Implements exponential backoff retry (3 attempts max) for handling:
+        - Device offline errors (code 10201)
+        - Authentication errors (code 401/10104)
+        - Transient API errors
 
         Args:
             device_id: Device ID
 
         Returns:
             Device status dictionary
+
+        Raises:
+            MoogoAuthError: If authentication required or fails after retries
+            MoogoDeviceError: If device operation fails after retries
+            MoogoAPIError: If API error occurs after retries
         """
         if not self.is_authenticated:
             raise MoogoAuthError("Authentication required")
@@ -419,9 +522,20 @@ class MoogoClient:
         response = await self._request("GET", endpoint)
         return response.get("data", {})
 
+    @retry_with_backoff(
+        max_attempts=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        retry_on=(MoogoDeviceError, MoogoAuthError, MoogoAPIError),
+    )
     async def start_spray(self, device_id: str, mode: str | None = None) -> bool:
         """
-        Start device spray/misting.
+        Start device spray/misting with automatic retry on transient failures.
+
+        Implements exponential backoff retry (3 attempts max) for handling:
+        - Device offline errors (code 10201)
+        - Authentication errors (code 401/10104)
+        - Transient API errors
 
         Args:
             device_id: Device ID
@@ -431,7 +545,8 @@ class MoogoClient:
             True if successful
 
         Raises:
-            MoogoDeviceError: If device is offline or operation fails
+            MoogoAuthError: If authentication required or fails after retries
+            MoogoDeviceError: If device is offline or operation fails after retries
 
         Note:
             Duration control is handled through schedules, not direct start commands.
@@ -467,9 +582,20 @@ class MoogoClient:
         except Exception as e:
             raise MoogoDeviceError(f"Failed to start spray: {e}") from e
 
+    @retry_with_backoff(
+        max_attempts=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        retry_on=(MoogoDeviceError, MoogoAuthError, MoogoAPIError),
+    )
     async def stop_spray(self, device_id: str, mode: str | None = None) -> bool:
         """
-        Stop device spray/misting.
+        Stop device spray/misting with automatic retry on transient failures.
+
+        Implements exponential backoff retry (3 attempts max) for handling:
+        - Device offline errors (code 10201)
+        - Authentication errors (code 401/10104)
+        - Transient API errors
 
         Args:
             device_id: Device ID
@@ -479,7 +605,8 @@ class MoogoClient:
             True if successful
 
         Raises:
-            MoogoDeviceError: If device is offline or operation fails
+            MoogoAuthError: If authentication required or fails after retries
+            MoogoDeviceError: If device is offline or operation fails after retries
         """
         if not self.is_authenticated:
             raise MoogoAuthError("Authentication required")
