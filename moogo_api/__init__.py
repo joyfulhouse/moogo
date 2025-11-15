@@ -6,20 +6,20 @@ Provides authentication, device control, monitoring, and schedule management.
 """
 
 from .client import (
-    MoogoClient,
-    MoogoAPIError, 
+    MoogoAPIError,
     MoogoAuthError,
+    MoogoClient,
     MoogoDeviceError,
     MoogoRateLimitError,
-    quick_test
+    quick_test,
 )
 
 __version__ = "1.0.0"
 __all__ = [
     "MoogoClient",
     "MoogoAPIError",
-    "MoogoAuthError", 
+    "MoogoAuthError",
     "MoogoDeviceError",
     "MoogoRateLimitError",
-    "quick_test"
+    "quick_test",
 ]
