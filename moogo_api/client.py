@@ -14,9 +14,10 @@ API Discovery Results:
 
 import asyncio
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Final, TypeVar, cast
+from typing import Any, Final, TypeVar
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout
