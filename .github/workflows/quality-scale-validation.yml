@@ -190,7 +190,7 @@ jobs:
           grep -rq "entity_category" custom_components/moogo/*.py && echo "✓ entity-category: Assigned" || exit 1
 
           # entity-translations
-          [ -d "translations" ] && echo "✓ entity-translations: Present" || exit 1
+          [ -d "custom_components/moogo/translations" ] && echo "✓ entity-translations: Present" || exit 1
 
           # reconfiguration-flow
           grep -q "async_step_reconfigure" custom_components/moogo/config_flow.py && echo "✓ reconfiguration-flow: Implemented" || exit 1
