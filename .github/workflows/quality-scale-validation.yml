@@ -228,7 +228,7 @@ jobs:
           grep -q ": Final" custom_components/moogo/const.py && echo "✓ const.py: Final type annotations present" || exit 1
 
           # aiohttp>=3.8.0 in manifest.json
-          grep -q '"aiohttp>=3.8.0"' manifest.json && echo "✓ manifest.json: aiohttp>=3.8.0 dependency" || exit 1
+          grep -q '"aiohttp>=3.8.0"' custom_components/moogo/manifest.json && echo "✓ manifest.json: aiohttp>=3.8.0 dependency" || exit 1
 
           # ClientSession | None in moogo_api/client.py
           grep -q "ClientSession | None" custom_components/moogo/moogo_api/client.py && echo "✓ client.py: ClientSession | None type annotation" || exit 1
