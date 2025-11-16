@@ -82,12 +82,12 @@ jobs:
           [ -d "tests" ] && echo "✓ tests/ directory exists" || exit 1
 
           # Check for required test files
-          [ -f "custom_components/moogo/tests/conftest.py" ] && echo "✓ conftest.py exists" || exit 1
-          [ -f "custom_components/moogo/tests/test_config_flow.py" ] && echo "✓ test_config_flow.py exists" || exit 1
-          [ -f "custom_components/moogo/tests/test_coordinator.py" ] && echo "✓ test_coordinator.py exists" || exit 1
-          [ -f "custom_components/moogo/tests/test_init.py" ] && echo "✓ test_init.py exists" || exit 1
-          [ -f "custom_components/moogo/tests/test_sensor.py" ] && echo "✓ test_sensor.py exists" || exit 1
-          [ -f "custom_components/moogo/tests/test_switch.py" ] && echo "✓ test_switch.py exists" || exit 1
+          [ -f "tests/conftest.py" ] && echo "✓ conftest.py exists" || exit 1
+          [ -f "tests/test_config_flow.py" ] && echo "✓ test_config_flow.py exists" || exit 1
+          [ -f "tests/test_coordinator.py" ] && echo "✓ test_coordinator.py exists" || exit 1
+          [ -f "tests/test_init.py" ] && echo "✓ test_init.py exists" || exit 1
+          [ -f "tests/test_sensor.py" ] && echo "✓ test_sensor.py exists" || exit 1
+          [ -f "tests/test_switch.py" ] && echo "✓ test_switch.py exists" || exit 1
 
           # Count test functions
           TEST_COUNT=$(grep -r "^async def test_\|^def test_" tests/*.py | wc -l)
@@ -110,7 +110,7 @@ jobs:
         run: |
           python -c "
           import json
-          manifest = json.load(open('manifest.json'))
+          manifest = json.load(open('custom_components/moogo/manifest.json'))
           required_keys = ['domain', 'name', 'codeowners', 'config_flow', 'documentation', 'version']
           for key in required_keys:
               assert key in manifest, f'Missing required key: {key}'
@@ -137,7 +137,7 @@ jobs:
           grep -q "test_connection" custom_components/moogo/__init__.py && echo "✓ test-before-setup: Implemented" || exit 1
 
           # config-flow-test-coverage
-          [ -f "custom_components/moogo/tests/test_config_flow.py" ] && echo "✓ config-flow-test-coverage: Present" || exit 1
+          [ -f "tests/test_config_flow.py" ] && echo "✓ config-flow-test-coverage: Present" || exit 1
 
           # config-entry-unloading
           grep -q "async_unload_entry" custom_components/moogo/__init__.py && echo "✓ config-entry-unloading: Supported" || exit 1
