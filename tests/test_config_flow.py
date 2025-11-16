@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-from unittest.mock import AsyncMock, patch
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
-from const import DOMAIN
+from custom_components.moogo.const import DOMAIN
 
 
 async def test_form(hass: HomeAssistant, mock_moogo_client) -> None:

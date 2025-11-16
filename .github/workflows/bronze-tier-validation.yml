@@ -33,11 +33,11 @@ jobs:
 
       - name: Run code formatters check
         run: |
-          black --check .
+          black --check custom_components/moogo
 
       - name: Run linters
         run: |
-          ruff check .
+          ruff check custom_components/moogo
 
       - name: Verify test files exist
         run: |
@@ -54,12 +54,12 @@ jobs:
 
       - name: Validate manifest.json
         run: |
-          python -c "import json; json.load(open('manifest.json'))"
+          python -c "import json; json.load(open('custom_components/moogo/manifest.json'))"
           echo "✓ manifest.json is valid JSON"
 
       - name: Check for config_flow
         run: |
-          if [ -f "config_flow.py" ]; then
+          if [ -f "custom_components/moogo/config_flow.py" ]; then
             echo "✓ config_flow.py exists"
           else
             echo "✗ config_flow.py missing"
@@ -68,7 +68,7 @@ jobs:
 
       - name: Check for unique_id in entities
         run: |
-          if grep -r "_attr_unique_id" sensor.py switch.py > /dev/null; then
+          if grep -r "_attr_unique_id" custom_components/moogo/sensor.py custom_components/moogo/switch.py > /dev/null; then
             echo "✓ Entities have unique IDs"
           else
             echo "✗ Entities missing unique IDs"
@@ -77,7 +77,7 @@ jobs:
 
       - name: Check for has_entity_name
         run: |
-          if grep -r "_attr_has_entity_name = True" sensor.py switch.py > /dev/null; then
+          if grep -r "_attr_has_entity_name = True" custom_components/moogo/sensor.py custom_components/moogo/switch.py > /dev/null; then
             echo "✓ Entities use has_entity_name pattern"
           else
             echo "✗ Entities missing has_entity_name"
@@ -86,7 +86,7 @@ jobs:
 
       - name: Check for runtime_data usage
         run: |
-          if grep -r "runtime_data" __init__.py sensor.py switch.py > /dev/null; then
+          if grep -r "runtime_data" custom_components/moogo/__init__.py custom_components/moogo/sensor.py custom_components/moogo/switch.py > /dev/null; then
             echo "✓ Uses runtime_data pattern"
           else
             echo "✗ Not using runtime_data pattern"
@@ -95,7 +95,7 @@ jobs:
 
       - name: Check for test_before_setup
         run: |
-          if grep -r "test_connection" __init__.py > /dev/null; then
+          if grep -r "test_connection" custom_components/moogo/__init__.py > /dev/null; then
             echo "✓ Implements test_before_setup"
           else
             echo "✗ Missing test_before_setup"
@@ -113,7 +113,7 @@ jobs:
 
       - name: Check for unload support
         run: |
-          if grep -r "async_unload_entry" __init__.py > /dev/null; then
+          if grep -r "async_unload_entry" custom_components/moogo/__init__.py > /dev/null; then
             echo "✓ Implements config entry unloading"
           else
             echo "✗ Missing config entry unloading"

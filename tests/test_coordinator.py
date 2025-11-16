@@ -2,22 +2,14 @@
 
 from __future__ import annotations
 
-import sys
-from datetime import timedelta
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from const import DOMAIN
-from coordinator import MoogoCoordinator
+from custom_components.moogo.const import DOMAIN
+from custom_components.moogo.coordinator import MoogoCoordinator
 
 
 async def test_coordinator_update_authenticated(
