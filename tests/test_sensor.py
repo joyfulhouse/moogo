@@ -2,18 +2,14 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
-from const import DOMAIN
-from sensor import async_setup_entry
+from custom_components.moogo.const import DOMAIN
+from custom_components.moogo.sensor import async_setup_entry
 
 
 async def test_sensor_setup_public_only(hass: HomeAssistant, mock_moogo_client) -> None:

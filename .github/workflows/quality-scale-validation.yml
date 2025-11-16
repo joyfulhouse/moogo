@@ -42,16 +42,16 @@ jobs:
 
       - name: Check code formatting with Black
         run: |
-          black --check . || echo "::warning::Code formatting issues found. Run 'black .' to fix."
+          black --check custom_components/moogo || echo "::warning::Code formatting issues found. Run 'black .' to fix."
 
       - name: Run Ruff linter
         run: |
-          ruff check . || echo "::warning::Linting issues found."
+          ruff check custom_components/moogo || echo "::warning::Linting issues found."
 
       - name: Type checking with mypy (Platinum tier)
         continue-on-error: true
         run: |
-          mypy *.py moogo_api/*.py --ignore-missing-imports --check-untyped-defs --no-strict-optional || echo "::warning::Type checking issues found (Platinum tier requirement)"
+          mypy custom_components/moogo/*.py custom_components/moogo/moogo_api/*.py --ignore-missing-imports --check-untyped-defs --no-strict-optional || echo "::warning::Type checking issues found (Platinum tier requirement)"
 
   test-coverage:
     name: Test Coverage
@@ -110,7 +110,7 @@ jobs:
         run: |
           python -c "
           import json
-          manifest = json.load(open('manifest.json'))
+          manifest = json.load(open('custom_components/moogo/manifest.json'))
           required_keys = ['domain', 'name', 'codeowners', 'config_flow', 'documentation', 'version']
           for key in required_keys:
               assert key in manifest, f'Missing required key: {key}'
@@ -122,25 +122,25 @@ jobs:
           echo "Checking Bronze Tier Requirements..."
 
           # config-flow
-          [ -f "config_flow.py" ] && echo "✓ config-flow: Enabled" || exit 1
+          [ -f "custom_components/moogo/config_flow.py" ] && echo "✓ config-flow: Enabled" || exit 1
 
           # runtime-data
-          grep -q "runtime_data" __init__.py && echo "✓ runtime-data: Implemented" || exit 1
+          grep -q "runtime_data" custom_components/moogo/__init__.py && echo "✓ runtime-data: Implemented" || exit 1
 
           # has-entity-name
-          grep -rq "_attr_has_entity_name = True" *.py && echo "✓ has-entity-name: Implemented" || exit 1
+          grep -rq "_attr_has_entity_name = True" custom_components/moogo/*.py && echo "✓ has-entity-name: Implemented" || exit 1
 
           # entity-unique-id
-          grep -rq "_attr_unique_id" *.py && echo "✓ entity-unique-id: Implemented" || exit 1
+          grep -rq "_attr_unique_id" custom_components/moogo/*.py && echo "✓ entity-unique-id: Implemented" || exit 1
 
           # test-before-setup
-          grep -q "test_connection" __init__.py && echo "✓ test-before-setup: Implemented" || exit 1
+          grep -q "test_connection" custom_components/moogo/__init__.py && echo "✓ test-before-setup: Implemented" || exit 1
 
           # config-flow-test-coverage
           [ -f "tests/test_config_flow.py" ] && echo "✓ config-flow-test-coverage: Present" || exit 1
 
           # config-entry-unloading
-          grep -q "async_unload_entry" __init__.py && echo "✓ config-entry-unloading: Supported" || exit 1
+          grep -q "async_unload_entry" custom_components/moogo/__init__.py && echo "✓ config-entry-unloading: Supported" || exit 1
 
           echo ""
           echo "🥉 Bronze Tier: PASSED"
@@ -159,13 +159,13 @@ jobs:
           echo "Checking Silver Tier Requirements..."
 
           # reauthentication-flow
-          grep -q "async_step_reauth" config_flow.py && echo "✓ reauthentication-flow: Implemented" || exit 1
+          grep -q "async_step_reauth" custom_components/moogo/config_flow.py && echo "✓ reauthentication-flow: Implemented" || exit 1
 
           # entity-unavailable
-          grep -rq "unavailable" sensor.py switch.py && echo "✓ entity-unavailable: Implemented" || exit 1
+          grep -rq "unavailable" custom_components/moogo/sensor.py custom_components/moogo/switch.py && echo "✓ entity-unavailable: Implemented" || exit 1
 
           # parallel-updates
-          grep -rq "PARALLEL_UPDATES" sensor.py switch.py && echo "✓ parallel-updates: Specified" || exit 1
+          grep -rq "PARALLEL_UPDATES" custom_components/moogo/sensor.py custom_components/moogo/switch.py && echo "✓ parallel-updates: Specified" || exit 1
 
           echo ""
           echo "🥈 Silver Tier: PASSED"
@@ -184,16 +184,16 @@ jobs:
           echo "Checking Gold Tier Requirements..."
 
           # diagnostics
-          [ -f "diagnostics.py" ] && echo "✓ diagnostics: Implemented" || exit 1
+          [ -f "custom_components/moogo/diagnostics.py" ] && echo "✓ diagnostics: Implemented" || exit 1
 
           # entity-category
-          grep -rq "entity_category" *.py && echo "✓ entity-category: Assigned" || exit 1
+          grep -rq "entity_category" custom_components/moogo/*.py && echo "✓ entity-category: Assigned" || exit 1
 
           # entity-translations
-          [ -d "translations" ] && echo "✓ entity-translations: Present" || exit 1
+          [ -d "custom_components/moogo/translations" ] && echo "✓ entity-translations: Present" || exit 1
 
           # reconfiguration-flow
-          grep -q "async_step_reconfigure" config_flow.py && echo "✓ reconfiguration-flow: Implemented" || exit 1
+          grep -q "async_step_reconfigure" custom_components/moogo/config_flow.py && echo "✓ reconfiguration-flow: Implemented" || exit 1
 
           echo ""
           echo "🥇 Gold Tier: PASSED"
@@ -222,19 +222,19 @@ jobs:
           echo "Checking Platinum Tier Requirements..."
 
           # py.typed file
-          [ -f "py.typed" ] && echo "✓ py.typed: File exists" || exit 1
+          [ -f "custom_components/moogo/py.typed" ] && echo "✓ py.typed: File exists" || exit 1
 
           # Type annotations in const.py
-          grep -q ": Final" const.py && echo "✓ const.py: Final type annotations present" || exit 1
+          grep -q ": Final" custom_components/moogo/const.py && echo "✓ const.py: Final type annotations present" || exit 1
 
           # aiohttp>=3.8.0 in manifest.json
-          grep -q '"aiohttp>=3.8.0"' manifest.json && echo "✓ manifest.json: aiohttp>=3.8.0 dependency" || exit 1
+          grep -q '"aiohttp>=3.8.0"' custom_components/moogo/manifest.json && echo "✓ manifest.json: aiohttp>=3.8.0 dependency" || exit 1
 
           # ClientSession | None in moogo_api/client.py
-          grep -q "ClientSession | None" moogo_api/client.py && echo "✓ client.py: ClientSession | None type annotation" || exit 1
+          grep -q "ClientSession | None" custom_components/moogo/moogo_api/client.py && echo "✓ client.py: ClientSession | None type annotation" || exit 1
 
           # strict-typing
-          mypy *.py moogo_api/*.py --ignore-missing-imports --check-untyped-defs && echo "✓ strict-typing: Passes mypy with type checking" || echo "⚠ strict-typing: Type hints present but mypy reports some issues (continuing)"
+          mypy custom_components/moogo/*.py custom_components/moogo/moogo_api/*.py --ignore-missing-imports --check-untyped-defs && echo "✓ strict-typing: Passes mypy with type checking" || echo "⚠ strict-typing: Type hints present but mypy reports some issues (continuing)"
 
           echo ""
           echo "🏆 Platinum Tier: PASSED"

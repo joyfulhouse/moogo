@@ -2,21 +2,14 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-import __init__ as moogo_init  # noqa: E402
-from const import DOMAIN  # noqa: E402
-
-async_setup_entry = moogo_init.async_setup_entry
-async_unload_entry = moogo_init.async_unload_entry
+from custom_components.moogo import async_setup_entry, async_unload_entry
+from custom_components.moogo.const import DOMAIN
 
 
 async def test_setup_entry_success(hass: HomeAssistant, mock_moogo_client) -> None:
