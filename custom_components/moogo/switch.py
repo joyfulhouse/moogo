@@ -130,7 +130,8 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
                 f"Starting spray for device {self.device_id} with duration {duration}s"
             )
 
-            # Send the start spray command
+            # Send the start spray command (with built-in retry logic)
+            # The API client now retries for ~30-40 seconds with exponential backoff
             success = await self.coordinator.api.start_spray(self.device_id, duration)
 
             if not success:
@@ -138,29 +139,36 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
                 return
 
             _LOGGER.info(
-                f"Start spray command sent for {self.device_name}, now polling for status confirmation..."
+                f"Start spray command sent for {self.device_name}, polling for confirmation..."
             )
 
-            # Poll the device status every 5 seconds to wait for it to come online and start spraying
-            # The API exhibits strange behavior where it reports offline initially
+            # Reduced polling since API client now handles retries
+            # Poll every 3 seconds for up to 30 seconds (10 attempts)
+            # This gives the device time to respond after API retries complete
             poll_attempts = 0
-            max_poll_attempts = 12  # Poll for up to 60 seconds (12 * 5 seconds)
+            max_poll_attempts = 10  # Reduced from 12
             spray_confirmed = False
 
             while poll_attempts < max_poll_attempts and not spray_confirmed:
                 poll_attempts += 1
 
-                # Wait 5 seconds before polling
-                await asyncio.sleep(5)
+                # Wait 3 seconds before polling (reduced from 5)
+                await asyncio.sleep(3)
 
                 _LOGGER.debug(
                     f"Polling attempt {poll_attempts}/{max_poll_attempts} for {self.device_name}"
                 )
 
                 # Refresh device status
-                device_status = await self.coordinator.api.get_device_status(
-                    self.device_id
-                )
+                try:
+                    device_status = await self.coordinator.api.get_device_status(
+                        self.device_id
+                    )
+                except Exception as status_error:
+                    _LOGGER.debug(
+                        f"Could not get status on poll {poll_attempts}: {status_error}"
+                    )
+                    continue
 
                 if device_status:
                     online_status = device_status.get("onlineStatus", 0)
@@ -174,25 +182,30 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
                     if online_status == 1 and run_status == 1:
                         spray_confirmed = True
                         _LOGGER.info(
-                            f"✅ Spray successfully started for {self.device_name} (confirmed after {poll_attempts * 5}s)"
+                            f"✅ Spray successfully started for {self.device_name} "
+                            f"(confirmed after {poll_attempts * 3}s)"
                         )
                         break
                     elif online_status == 1 and run_status == 0:
-                        _LOGGER.warning(
-                            f"Device {self.device_name} is online but not spraying after {poll_attempts * 5}s"
+                        # Device is online but not spraying - may need more time
+                        _LOGGER.debug(
+                            f"Device {self.device_name} is online but not spraying yet "
+                            f"(after {poll_attempts * 3}s)"
                         )
                     else:
                         _LOGGER.debug(
                             f"Device {self.device_name} still offline, continuing to poll..."
                         )
                 else:
-                    _LOGGER.warning(
-                        f"Failed to get device status for {self.device_name} on poll attempt {poll_attempts}"
+                    _LOGGER.debug(
+                        f"No device status data on poll attempt {poll_attempts}"
                     )
 
             if not spray_confirmed:
                 _LOGGER.warning(
-                    f"⚠️ Spray command sent but could not confirm spray started for {self.device_name} after {max_poll_attempts * 5}s"
+                    f"⚠️ Spray command sent but could not confirm spray started for "
+                    f"{self.device_name} after {max_poll_attempts * 3}s. "
+                    f"Device may still be starting up."
                 )
 
             # Refresh coordinator data to reflect the final state
@@ -205,6 +218,9 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
         """Turn off the spray with polling to verify stop."""
         try:
             _LOGGER.info(f"Stopping spray for device {self.device_id}")
+
+            # Send the stop spray command (with built-in retry logic)
+            # The API client now retries for ~30-40 seconds with exponential backoff
             success = await self.coordinator.api.stop_spray(
                 self.device_id, "manual_stop"
             )
@@ -217,25 +233,32 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
                 f"Stop spray command sent for {self.device_name}, polling for confirmation..."
             )
 
-            # Poll the device status to confirm spray has stopped
+            # Reduced polling since API client now handles retries
+            # Poll every 3 seconds for up to 18 seconds (6 attempts)
             poll_attempts = 0
-            max_poll_attempts = 6  # Poll for up to 30 seconds (6 * 5 seconds)
+            max_poll_attempts = 6
             stop_confirmed = False
 
             while poll_attempts < max_poll_attempts and not stop_confirmed:
                 poll_attempts += 1
 
-                # Wait 5 seconds before polling
-                await asyncio.sleep(5)
+                # Wait 3 seconds before polling (reduced from 5)
+                await asyncio.sleep(3)
 
                 _LOGGER.debug(
                     f"Stop polling attempt {poll_attempts}/{max_poll_attempts} for {self.device_name}"
                 )
 
                 # Refresh device status
-                device_status = await self.coordinator.api.get_device_status(
-                    self.device_id
-                )
+                try:
+                    device_status = await self.coordinator.api.get_device_status(
+                        self.device_id
+                    )
+                except Exception as status_error:
+                    _LOGGER.debug(
+                        f"Could not get status on stop poll {poll_attempts}: {status_error}"
+                    )
+                    continue
 
                 if device_status:
                     run_status = device_status.get("runStatus", 0)
@@ -249,7 +272,8 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
                     if run_status == 0:
                         stop_confirmed = True
                         _LOGGER.info(
-                            f"✅ Spray successfully stopped for {self.device_name} (confirmed after {poll_attempts * 5}s)"
+                            f"✅ Spray successfully stopped for {self.device_name} "
+                            f"(confirmed after {poll_attempts * 3}s)"
                         )
                         break
                     else:
@@ -257,13 +281,15 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
                             f"Device {self.device_name} still spraying, continuing to poll..."
                         )
                 else:
-                    _LOGGER.warning(
-                        f"Failed to get device status for {self.device_name} on stop poll attempt {poll_attempts}"
+                    _LOGGER.debug(
+                        f"No device status data on stop poll attempt {poll_attempts}"
                     )
 
             if not stop_confirmed:
                 _LOGGER.warning(
-                    f"⚠️ Stop command sent but could not confirm spray stopped for {self.device_name} after {max_poll_attempts * 5}s"
+                    f"⚠️ Stop command sent but could not confirm spray stopped for "
+                    f"{self.device_name} after {max_poll_attempts * 3}s. "
+                    f"Device may still be stopping."
                 )
 
             # Refresh coordinator data to reflect the final state

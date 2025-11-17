@@ -14,6 +14,7 @@ API Discovery Results:
 
 import asyncio
 import logging
+import random
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import wraps
@@ -56,27 +57,39 @@ def retry_with_backoff(
     max_attempts: int = 3,
     initial_delay: float = 1.0,
     backoff_factor: float = 2.0,
+    max_delay: float = 30.0,
+    device_offline_max_attempts: int | None = None,
     retry_on: tuple[type[Exception], ...] = (MoogoDeviceError, MoogoAuthError),
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
-    Decorator for retrying async functions with exponential backoff.
+    Decorator for retrying async functions with exponential backoff and jitter.
 
-    Implements exponential backoff retry strategy for handling transient failures
-    in API calls. Complies with HomeAssistant Platinum tier requirements for
+    Implements exponential backoff retry strategy with randomized jitter for handling
+    transient failures in API calls. Special handling for device offline errors allows
+    extended retry windows. Complies with HomeAssistant Platinum tier requirements for
     robust error handling.
 
     Args:
         max_attempts: Maximum number of retry attempts (default: 3)
         initial_delay: Initial delay in seconds before first retry (default: 1.0)
         backoff_factor: Multiplier for delay between retries (default: 2.0)
+        max_delay: Maximum delay cap in seconds to prevent excessive waits (default: 30.0)
+        device_offline_max_attempts: Special extended retry count for device offline errors.
+            If None, uses max_attempts for all errors (default: None)
         retry_on: Tuple of exception types to retry on
 
     Returns:
         Decorated function with retry logic
 
     Example:
-        @retry_with_backoff(max_attempts=3, initial_delay=1.0, backoff_factor=2.0)
-        async def get_device_status(device_id: str) -> dict[str, Any]:
+        @retry_with_backoff(
+            max_attempts=5,
+            initial_delay=2.0,
+            backoff_factor=2.0,
+            max_delay=30.0,
+            device_offline_max_attempts=5
+        )
+        async def start_spray(device_id: str) -> bool:
             ...
     """
 
@@ -85,8 +98,10 @@ def retry_with_backoff(
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             last_exception: Exception | None = None
             delay = initial_delay
+            attempts = max_attempts
+            is_device_offline_error = False
 
-            for attempt in range(1, max_attempts + 1):
+            for attempt in range(1, attempts + 1):
                 try:
                     return await func(*args, **kwargs)
                 except retry_on as e:
@@ -99,21 +114,49 @@ def retry_with_backoff(
                         )
                         raise
 
+                    # Check if this is a device offline error (first time only)
+                    if (
+                        attempt == 1
+                        and isinstance(e, MoogoDeviceError)
+                        and "offline" in str(e).lower()
+                    ):
+                        is_device_offline_error = True
+                        # Use extended retry attempts for offline errors if configured
+                        if (
+                            device_offline_max_attempts
+                            and device_offline_max_attempts > max_attempts
+                        ):
+                            attempts = device_offline_max_attempts
+                            _LOGGER.info(
+                                f"Device offline detected in {func.__name__}, "
+                                f"extending retries to {attempts} attempts"
+                            )
+
                     # Don't retry if this is the last attempt
-                    if attempt >= max_attempts:
+                    if attempt >= attempts:
+                        error_type = (
+                            "device offline error"
+                            if is_device_offline_error
+                            else "error"
+                        )
                         _LOGGER.error(
-                            f"Max retry attempts ({max_attempts}) reached for {func.__name__}: {e}"
+                            f"Max retry attempts ({attempts}) reached for {func.__name__} "
+                            f"({error_type}): {e}"
                         )
                         break
 
+                    # Add jitter (0-1 second randomization) to prevent synchronized retries
+                    jitter = random.uniform(0, 1.0)
+                    actual_delay = min(delay + jitter, max_delay)
+
                     # Log retry attempt with backoff time
                     _LOGGER.warning(
-                        f"Attempt {attempt}/{max_attempts} failed for {func.__name__}: {e}. "
-                        f"Retrying in {delay:.1f}s..."
+                        f"Attempt {attempt}/{attempts} failed for {func.__name__}: {e}. "
+                        f"Retrying in {actual_delay:.1f}s..."
                     )
 
-                    # Wait before retrying with exponential backoff
-                    await asyncio.sleep(delay)
+                    # Wait before retrying with exponential backoff + jitter
+                    await asyncio.sleep(actual_delay)
                     delay *= backoff_factor
 
                 except Exception as e:
@@ -228,6 +271,13 @@ class MoogoClient:
         self._devices_cache_time: datetime | None = None
         self._devices_cache_ttl: timedelta = timedelta(minutes=5)
 
+        # Circuit breaker tracking for persistently offline devices
+        self._device_circuit_breakers: dict[str, dict[str, Any]] = {}
+        self._circuit_breaker_threshold: int = 5  # Failures before opening circuit
+        self._circuit_breaker_timeout: timedelta = timedelta(
+            minutes=5
+        )  # Cooldown period
+
     async def __aenter__(self) -> "MoogoClient":
         """Async context manager entry."""
         if self._session is None:
@@ -260,6 +310,114 @@ class MoogoClient:
             and self._token is not None
             and (self._token_expires is None or datetime.now() < self._token_expires)
         )
+
+    def _record_device_failure(self, device_id: str, error: Exception) -> None:
+        """
+        Record a device operation failure for circuit breaker tracking.
+
+        Args:
+            device_id: Device ID that failed
+            error: Exception that occurred
+        """
+        if device_id not in self._device_circuit_breakers:
+            self._device_circuit_breakers[device_id] = {
+                "failures": 0,
+                "last_failure": None,
+                "last_success": None,
+            }
+
+        circuit = self._device_circuit_breakers[device_id]
+        circuit["failures"] += 1
+        circuit["last_failure"] = datetime.now()
+
+        if circuit["failures"] >= self._circuit_breaker_threshold:
+            _LOGGER.warning(
+                f"Circuit breaker threshold reached for device {device_id} "
+                f"({circuit['failures']} failures). Device will be treated as persistently offline."
+            )
+
+    def _record_device_success(self, device_id: str) -> None:
+        """
+        Record a successful device operation, resetting circuit breaker.
+
+        Args:
+            device_id: Device ID that succeeded
+        """
+        if device_id in self._device_circuit_breakers:
+            circuit = self._device_circuit_breakers[device_id]
+            previous_failures = circuit["failures"]
+            circuit["failures"] = 0
+            circuit["last_success"] = datetime.now()
+
+            if previous_failures >= self._circuit_breaker_threshold:
+                _LOGGER.info(
+                    f"Circuit breaker reset for device {device_id} after successful operation"
+                )
+
+    def _is_circuit_open(self, device_id: str) -> bool:
+        """
+        Check if circuit breaker is open (device persistently offline).
+
+        Circuit is open if:
+        - Device has failed >= threshold times
+        - Last failure was within timeout period
+        - No successful operations since failures started
+
+        Args:
+            device_id: Device ID to check
+
+        Returns:
+            True if circuit is open (device should not be retried)
+        """
+        circuit = self._device_circuit_breakers.get(device_id)
+        if not circuit:
+            return False
+
+        # Check if we've exceeded the failure threshold
+        if circuit["failures"] >= self._circuit_breaker_threshold:
+            last_failure = circuit["last_failure"]
+            if last_failure:
+                time_since_failure = datetime.now() - last_failure
+
+                # If within timeout period, circuit is open
+                if time_since_failure < self._circuit_breaker_timeout:
+                    return True
+                else:
+                    # Timeout expired, reset and give device another chance
+                    _LOGGER.info(
+                        f"Circuit breaker cooldown expired for device {device_id}, "
+                        f"resetting failure count"
+                    )
+                    circuit["failures"] = 0
+                    return False
+
+        return False
+
+    def get_device_circuit_status(self, device_id: str) -> dict[str, Any]:
+        """
+        Get circuit breaker status for a device (for diagnostics).
+
+        Args:
+            device_id: Device ID to check
+
+        Returns:
+            Dictionary with circuit breaker status information
+        """
+        circuit = self._device_circuit_breakers.get(device_id)
+        if not circuit:
+            return {
+                "circuit_open": False,
+                "failures": 0,
+                "last_failure": None,
+                "last_success": None,
+            }
+
+        return {
+            "circuit_open": self._is_circuit_open(device_id),
+            "failures": circuit["failures"],
+            "last_failure": circuit["last_failure"],
+            "last_success": circuit["last_success"],
+        }
 
     def _get_headers(self, authenticated: bool = True) -> dict[str, str]:
         """Get request headers."""
@@ -311,7 +469,6 @@ class MoogoClient:
             async with self.session.request(
                 method, url, headers=headers, **kwargs
             ) as response:
-
                 if response.status != 200:
                     if (
                         response.status == 401
@@ -494,6 +651,7 @@ class MoogoClient:
         max_attempts=3,
         initial_delay=1.0,
         backoff_factor=2.0,
+        max_delay=30.0,
         retry_on=(MoogoDeviceError, MoogoAuthError, MoogoAPIError),
     )
     async def get_device_status(self, device_id: str) -> dict[str, Any]:
@@ -524,19 +682,23 @@ class MoogoClient:
         return response.get("data", {})
 
     @retry_with_backoff(
-        max_attempts=3,
-        initial_delay=1.0,
+        max_attempts=5,
+        initial_delay=2.0,
         backoff_factor=2.0,
+        max_delay=30.0,
+        device_offline_max_attempts=5,
         retry_on=(MoogoDeviceError, MoogoAuthError, MoogoAPIError),
     )
     async def start_spray(self, device_id: str, mode: str | None = None) -> bool:
         """
         Start device spray/misting with automatic retry on transient failures.
 
-        Implements exponential backoff retry (3 attempts max) for handling:
-        - Device offline errors (code 10201)
+        Implements exponential backoff retry with extended handling for device offline:
+        - 5 attempts with 2s initial delay and exponential backoff
+        - Special handling for device offline errors (code 10201)
         - Authentication errors (code 401/10104)
-        - Transient API errors
+        - Jitter added to prevent synchronized retries
+        - Circuit breaker tracking for persistently offline devices
 
         Args:
             device_id: Device ID
@@ -555,6 +717,35 @@ class MoogoClient:
         """
         if not self.is_authenticated:
             raise MoogoAuthError("Authentication required")
+
+        # Check circuit breaker - if device is persistently offline, fail fast
+        if self._is_circuit_open(device_id):
+            time_remaining = self._circuit_breaker_timeout - (
+                datetime.now()
+                - self._device_circuit_breakers[device_id]["last_failure"]
+            )
+            raise MoogoDeviceError(
+                f"Device {device_id} circuit breaker is open (persistently offline). "
+                f"Will retry in {time_remaining.total_seconds():.0f}s"
+            )
+
+        # Pre-flight check: Get device status to provide better error messages
+        try:
+            status = await self.get_device_status(device_id)
+            online_status = status.get("onlineStatus", 0)
+
+            if online_status != 1:
+                _LOGGER.warning(
+                    f"Device {device_id} appears offline (status: {online_status}). "
+                    "Attempting spray command anyway as device may be waking up..."
+                )
+            else:
+                _LOGGER.debug(f"Device {device_id} is online, proceeding with spray")
+        except Exception as e:
+            _LOGGER.debug(
+                f"Could not pre-check device {device_id} status: {e}. "
+                "Proceeding with spray attempt..."
+            )
 
         endpoint = self.ENDPOINTS["device_start"].format(device_id=device_id)
 
@@ -575,28 +766,38 @@ class MoogoClient:
                 _LOGGER.info(
                     f"Started spray for device {device_id} with mode: {mode or 'default'}"
                 )
+                # Record success for circuit breaker
+                self._record_device_success(device_id)
 
             return success
 
-        except MoogoDeviceError:
+        except MoogoDeviceError as e:
+            # Record failure for circuit breaker tracking
+            self._record_device_failure(device_id, e)
             raise
         except Exception as e:
-            raise MoogoDeviceError(f"Failed to start spray: {e}") from e
+            error = MoogoDeviceError(f"Failed to start spray: {e}")
+            self._record_device_failure(device_id, error)
+            raise error from e
 
     @retry_with_backoff(
-        max_attempts=3,
-        initial_delay=1.0,
+        max_attempts=5,
+        initial_delay=2.0,
         backoff_factor=2.0,
+        max_delay=30.0,
+        device_offline_max_attempts=5,
         retry_on=(MoogoDeviceError, MoogoAuthError, MoogoAPIError),
     )
     async def stop_spray(self, device_id: str, mode: str | None = None) -> bool:
         """
         Stop device spray/misting with automatic retry on transient failures.
 
-        Implements exponential backoff retry (3 attempts max) for handling:
-        - Device offline errors (code 10201)
+        Implements exponential backoff retry with extended handling for device offline:
+        - 5 attempts with 2s initial delay and exponential backoff
+        - Special handling for device offline errors (code 10201)
         - Authentication errors (code 401/10104)
-        - Transient API errors
+        - Jitter added to prevent synchronized retries
+        - Circuit breaker tracking for persistently offline devices
 
         Args:
             device_id: Device ID
@@ -612,6 +813,35 @@ class MoogoClient:
         if not self.is_authenticated:
             raise MoogoAuthError("Authentication required")
 
+        # Check circuit breaker - if device is persistently offline, fail fast
+        if self._is_circuit_open(device_id):
+            time_remaining = self._circuit_breaker_timeout - (
+                datetime.now()
+                - self._device_circuit_breakers[device_id]["last_failure"]
+            )
+            raise MoogoDeviceError(
+                f"Device {device_id} circuit breaker is open (persistently offline). "
+                f"Will retry in {time_remaining.total_seconds():.0f}s"
+            )
+
+        # Pre-flight check: Get device status
+        try:
+            status = await self.get_device_status(device_id)
+            online_status = status.get("onlineStatus", 0)
+
+            if online_status != 1:
+                _LOGGER.warning(
+                    f"Device {device_id} appears offline (status: {online_status}). "
+                    "Attempting stop command anyway..."
+                )
+            else:
+                _LOGGER.debug(f"Device {device_id} is online, proceeding with stop")
+        except Exception as e:
+            _LOGGER.debug(
+                f"Could not pre-check device {device_id} status: {e}. "
+                "Proceeding with stop attempt..."
+            )
+
         endpoint = self.ENDPOINTS["device_stop"].format(device_id=device_id)
 
         # Based on testing: empty payload works, mode parameter causes errors
@@ -625,13 +855,19 @@ class MoogoClient:
 
             if success:
                 _LOGGER.info(f"Stopped spray for device {device_id}")
+                # Record success for circuit breaker
+                self._record_device_success(device_id)
 
             return success
 
-        except MoogoDeviceError:
+        except MoogoDeviceError as e:
+            # Record failure for circuit breaker tracking
+            self._record_device_failure(device_id, e)
             raise
         except Exception as e:
-            raise MoogoDeviceError(f"Failed to stop spray: {e}") from e
+            error = MoogoDeviceError(f"Failed to stop spray: {e}")
+            self._record_device_failure(device_id, error)
+            raise error from e
 
     # Public API endpoints (no authentication required)
 

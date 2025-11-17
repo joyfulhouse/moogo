@@ -103,7 +103,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> FlowResult:
         """Handle reauthentication when credentials expire or fail."""
-        self.entry: ConfigEntry = self.hass.config_entries.async_get_entry(self.context["entry_id"])  # type: ignore[assignment]
+        self.entry: ConfigEntry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )  # type: ignore[assignment]
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
