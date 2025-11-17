@@ -26,9 +26,9 @@ class MoogoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.api: MoogoClient = api
         self.entry: ConfigEntry = entry
         self._last_device_count: int = 0
-        self._device_availability: dict[
-            str, bool
-        ] = {}  # Track device availability states
+        self._device_availability: dict[str, bool] = (
+            {}
+        )  # Track device availability states
 
         # Dynamic update interval based on authentication status
         update_interval = self._get_update_interval()

@@ -92,9 +92,9 @@ class TestCircuitBreaker:
         assert client._is_circuit_open("device_123")
 
         # Simulate timeout by setting last_failure to past
-        client._device_circuit_breakers["device_123"]["last_failure"] = (
-            datetime.now() - timedelta(seconds=10)
-        )
+        client._device_circuit_breakers["device_123"][
+            "last_failure"
+        ] = datetime.now() - timedelta(seconds=10)
 
         # Circuit should now be closed
         assert not client._is_circuit_open("device_123")
