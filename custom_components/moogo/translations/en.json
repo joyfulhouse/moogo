@@ -29,6 +29,7 @@
     "error": {
       "cannot_connect": "Failed to connect to Moogo API",
       "invalid_auth": "Invalid email or password",
+      "rate_limited": "Too many login attempts. Please wait 24 hours before trying again.",
       "unknown": "Unexpected error occurred"
     },
     "abort": {

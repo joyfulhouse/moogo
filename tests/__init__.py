@@ -1,1 +1,1 @@
-"""Tests for the Moogo integration."""
+"""Tests for Moogo integration."""

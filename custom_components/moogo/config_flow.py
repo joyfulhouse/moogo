@@ -11,9 +11,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
+from pymoogo import MoogoAPIError, MoogoAuthError, MoogoClient, MoogoRateLimitError
 
 from .const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
-from .moogo_api import MoogoClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,18 +32,29 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     session = async_get_clientsession(hass)
 
-    api = MoogoClient(
-        email=data.get(CONF_EMAIL), password=data.get(CONF_PASSWORD), session=session
+    client = MoogoClient(
+        email=data.get(CONF_EMAIL),
+        password=data.get(CONF_PASSWORD),
+        session=session,
     )
 
     # Test public endpoints first (always works)
-    if not await api.test_connection():
-        raise CannotConnect
+    try:
+        await client.get_liquid_types()
+    except MoogoAPIError as err:
+        _LOGGER.error("Cannot connect to Moogo API: %s", err)
+        raise CannotConnect from err
 
     # If credentials provided, test authentication
     if data.get(CONF_EMAIL) and data.get(CONF_PASSWORD):
-        if not await api.authenticate():
-            raise InvalidAuth
+        try:
+            await client.authenticate()
+        except MoogoRateLimitError as err:
+            _LOGGER.error("Rate limited during authentication: %s", err)
+            raise RateLimited from err
+        except MoogoAuthError as err:
+            _LOGGER.error("Invalid authentication: %s", err)
+            raise InvalidAuth from err
         title = f"Moogo ({data[CONF_EMAIL]})"
     else:
         title = "Moogo (Public Data Only)"
@@ -51,7 +62,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     return {"title": title}
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Moogo."""
 
     VERSION: int = 1
@@ -77,7 +88,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "cannot_connect"
         except InvalidAuth:
             errors["base"] = "invalid_auth"
-        except Exception:  # pylint: disable=broad-except
+        except RateLimited:
+            errors["base"] = "rate_limited"
+        except Exception:
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
         else:
@@ -103,9 +116,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> FlowResult:
         """Handle reauthentication when credentials expire or fail."""
-        self.entry: ConfigEntry = self.hass.config_entries.async_get_entry(
-            self.context["entry_id"]
-        )  # type: ignore[assignment]
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        assert entry is not None
+        self.entry: ConfigEntry = entry
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
@@ -150,7 +163,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
-            except Exception:  # pylint: disable=broad-except
+            except RateLimited:
+                errors["base"] = "rate_limited"
+            except Exception:
                 _LOGGER.exception("Unexpected exception during reauth")
                 errors["base"] = "unknown"
 
@@ -197,7 +212,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
-            except Exception:  # pylint: disable=broad-except
+            except RateLimited:
+                errors["base"] = "rate_limited"
+            except Exception:
                 _LOGGER.exception("Unexpected exception during reconfiguration")
                 errors["base"] = "unknown"
 
@@ -241,3 +258,7 @@ class CannotConnect(HomeAssistantError):
 
 class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""
+
+
+class RateLimited(HomeAssistantError):
+    """Error to indicate rate limiting."""

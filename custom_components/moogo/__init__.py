@@ -8,10 +8,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
+from pymoogo import MoogoAuthError, MoogoClient, MoogoRateLimitError
 
 from .const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
 from .coordinator import MoogoCoordinator
-from .moogo_api import MoogoClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,30 +21,42 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Moogo from a config entry."""
-    # Initialize API client
     from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
     session = async_get_clientsession(hass)
 
-    api = MoogoClient(
+    # Initialize pymoogo client with session injection
+    client = MoogoClient(
         email=entry.data.get(CONF_EMAIL),
         password=entry.data.get(CONF_PASSWORD),
         session=session,
     )
 
     # Test connection before setup (Bronze tier: test-before-setup)
-    if not await api.test_connection():
-        _LOGGER.error("Failed to connect to Moogo API during setup")
+    try:
+        # Test public endpoint connectivity
+        await client.get_liquid_types()
+    except Exception as err:
+        _LOGGER.error("Failed to connect to Moogo API during setup: %s", err)
         return False
 
     # Authenticate if credentials provided
     if entry.data.get(CONF_EMAIL) and entry.data.get(CONF_PASSWORD):
-        if not await api.authenticate():
-            _LOGGER.error("Authentication failed during setup")
+        try:
+            await client.authenticate()
+            _LOGGER.info("Successfully authenticated with Moogo API")
+        except MoogoRateLimitError as err:
+            _LOGGER.error("Rate limited during authentication: %s", err)
+            return False
+        except MoogoAuthError as err:
+            _LOGGER.error("Authentication failed during setup: %s", err)
+            return False
+        except Exception as err:
+            _LOGGER.error("Unexpected error during authentication: %s", err)
             return False
 
-    # Initialize coordinator
-    coordinator = MoogoCoordinator(hass, api, entry)
+    # Initialize coordinator with pymoogo client
+    coordinator = MoogoCoordinator(hass, client, entry)
 
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
@@ -76,7 +88,7 @@ async def _async_remove_stale_devices(
 
     # Get current device IDs from coordinator data
     current_device_ids = set()
-    if coordinator.api.is_authenticated and coordinator.data.get("devices"):
+    if coordinator.client.is_authenticated and coordinator.data.get("devices"):
         current_device_ids = {
             device.get("deviceId")
             for device in coordinator.data["devices"]
@@ -105,4 +117,12 @@ async def _async_remove_stale_devices(
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     # Unload platforms
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+    # Close the pymoogo client if we own the session
+    if unload_ok:
+        coordinator: MoogoCoordinator = entry.runtime_data
+        # Note: pymoogo won't close injected sessions, which is what we want
+        await coordinator.client.close()
+
+    return bool(unload_ok)
