@@ -59,9 +59,9 @@ class MoogoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # Always fetch public data (pymoogo handles caching internally)
             data["liquid_types"] = await self.client.get_liquid_types()
-            data[
-                "recommended_schedules"
-            ] = await self.client.get_recommended_schedules()
+            data["recommended_schedules"] = (
+                await self.client.get_recommended_schedules()
+            )
 
             # Fetch authenticated data if available
             if self.client.is_authenticated:
