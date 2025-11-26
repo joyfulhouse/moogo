@@ -30,6 +30,7 @@
       "cannot_connect": "Failed to connect to Moogo API",
       "invalid_auth": "Invalid email or password",
       "rate_limited": "Too many login attempts. Please wait 24 hours before trying again.",
+      "reload_failed": "Failed to reload integration. Please restart Home Assistant.",
       "unknown": "Unexpected error occurred"
     },
     "abort": {
