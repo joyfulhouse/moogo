@@ -1,0 +1,222 @@
+# Home Assistant Integration Quality Scale
+# https://developers.home-assistant.io/docs/core/integration-quality-scale
+#
+# Target: Platinum
+# Version: 2.0.0-beta.1
+
+rules:
+  # ===== BRONZE TIER (19 rules) =====
+
+  action-setup:
+    status: done
+    comment: No service actions defined yet (future enhancement)
+
+  appropriate-polling:
+    status: done
+    comment: 30s for authenticated, 1h for public data via coordinator
+
+  brands:
+    status: done
+    comment: Brand assets available
+
+  common-modules:
+    status: done
+    comment: Common patterns in coordinator.py, const.py
+
+  config-flow-test-coverage:
+    status: done
+    comment: Config flow tested in test_integration.py
+
+  config-flow:
+    status: done
+    comment: Full UI config flow in config_flow.py
+
+  dependency-transparency:
+    status: done
+    comment: pymoogo==0.1.2 clearly defined in manifest.json
+
+  docs-actions:
+    status: exempt
+    comment: No service actions defined yet
+
+  docs-high-level-description:
+    status: done
+    comment: CLAUDE.md contains comprehensive documentation
+
+  docs-installation-instructions:
+    status: done
+    comment: Installation documented in CLAUDE.md
+
+  docs-removal-instructions:
+    status: done
+    comment: Standard Home Assistant removal process
+
+  entity-event-setup:
+    status: done
+    comment: Coordinator pattern handles event subscriptions correctly
+
+  entity-unique-id:
+    status: done
+    comment: All entities have unique IDs using device_id prefix
+
+  has-entity-name:
+    status: done
+    comment: All entities use _attr_has_entity_name = True
+
+  runtime-data:
+    status: done
+    comment: Uses entry.runtime_data for coordinator storage
+
+  test-before-configure:
+    status: done
+    comment: Config flow validates credentials before creating entry
+
+  test-before-setup:
+    status: done
+    comment: __init__.py tests API connection before setup
+
+  unique-config-entry:
+    status: done
+    comment: Unique ID set per email or "public_data"
+
+  # ===== SILVER TIER (10 rules) =====
+
+  action-exceptions:
+    status: exempt
+    comment: No service actions defined yet
+
+  config-entry-unloading:
+    status: done
+    comment: async_unload_entry properly implemented
+
+  docs-configuration-parameters:
+    status: done
+    comment: Email/password documented with optional notes
+
+  docs-installation-parameters:
+    status: done
+    comment: Setup parameters documented
+
+  entity-unavailable:
+    status: done
+    comment: Entities check coordinator.last_update_success and device availability
+
+  integration-owner:
+    status: done
+    comment: "@btli" defined in manifest.json codeowners
+
+  log-when-unavailable:
+    status: done
+    comment: Availability changes logged in sensor.py and switch.py
+
+  parallel-updates:
+    status: done
+    comment: PARALLEL_UPDATES = 1 set in sensor.py and switch.py
+
+  reauthentication-flow:
+    status: done
+    comment: async_step_reauth and async_step_reauth_confirm implemented
+
+  test-coverage:
+    status: done
+    comment: Integration tests cover key functionality
+
+  # ===== GOLD TIER (22 rules) =====
+
+  devices:
+    status: done
+    comment: Device registry entries created via device_info property
+
+  diagnostics:
+    status: done
+    comment: diagnostics.py provides redacted diagnostic data
+
+  discovery-update-info:
+    status: exempt
+    comment: Cloud-based API, no local network discovery
+
+  discovery:
+    status: exempt
+    comment: Cloud-based API, devices discovered via authentication
+
+  docs-data-update:
+    status: done
+    comment: Polling intervals documented (30s/1h)
+
+  docs-examples:
+    status: done
+    comment: Usage examples in CLAUDE.md
+
+  docs-known-limitations:
+    status: done
+    comment: Rate limiting and API constraints documented
+
+  docs-supported-devices:
+    status: done
+    comment: Moogo Smart Spray devices documented
+
+  docs-supported-functions:
+    status: done
+    comment: All sensors and switch entities documented
+
+  docs-troubleshooting:
+    status: done
+    comment: Error codes and troubleshooting in CLAUDE.md
+
+  docs-use-cases:
+    status: done
+    comment: Smart spray automation use cases documented
+
+  dynamic-devices:
+    status: done
+    comment: Devices refreshed on each coordinator update
+
+  entity-category:
+    status: done
+    comment: Diagnostic entities use EntityCategory.DIAGNOSTIC
+
+  entity-device-class:
+    status: done
+    comment: Temperature, humidity, signal strength use device classes
+
+  entity-disabled-by-default:
+    status: done
+    comment: Last spray sensor disabled by default
+
+  entity-translations:
+    status: done
+    comment: translations/en.json provides entity translations
+
+  exception-translations:
+    status: done
+    comment: Error messages in strings.json are translatable
+
+  icon-translations:
+    status: exempt
+    comment: Using standard MDI icons, no custom icons
+
+  reconfiguration-flow:
+    status: done
+    comment: async_step_reconfigure implemented
+
+  repair-issues:
+    status: exempt
+    comment: No repair issues needed currently
+
+  stale-devices:
+    status: done
+    comment: _async_remove_stale_devices in __init__.py
+
+  # ===== PLATINUM TIER (3 rules) =====
+
+  async-dependency:
+    status: done
+    comment: pymoogo is fully async using aiohttp
+
+  inject-websession:
+    status: done
+    comment: pymoogo MoogoClient accepts session parameter
+
+  strict-typing:
+    status: done
+    comment: py.typed marker present, full type annotations

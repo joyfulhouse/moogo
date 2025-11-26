@@ -5,6 +5,7 @@ on:
     branches:
       - 'claude/bronze-*'
       - 'main'
+      - 'v2'
   pull_request:
     branches:
       - 'main'
@@ -15,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12", "3.13"]
 
     steps:
       - name: Checkout code
@@ -95,19 +96,19 @@ jobs:
 
       - name: Check for test_before_setup
         run: |
-          if grep -r "test_connection" custom_components/moogo/__init__.py > /dev/null; then
-            echo "✓ Implements test_before_setup"
+          if grep -r "authenticate" custom_components/moogo/__init__.py > /dev/null; then
+            echo "✓ Implements test_before_setup (via authenticate)"
           else
             echo "✗ Missing test_before_setup"
             exit 1
           fi
 
-      - name: Check for config flow tests
+      - name: Check for integration tests
         run: |
-          if [ -f "tests/test_config_flow.py" ]; then
-            echo "✓ Config flow tests exist"
+          if [ -f "tests/test_integration.py" ]; then
+            echo "✓ Integration tests exist"
           else
-            echo "✗ Config flow tests missing"
+            echo "✗ Integration tests missing"
             exit 1
           fi
 
@@ -130,8 +131,8 @@ jobs:
           echo "✓ runtime-data: Using ConfigEntry.runtime_data"
           echo "✓ has-entity-name: Entities implement has_entity_name"
           echo "✓ entity-unique-id: All entities have unique IDs"
-          echo "✓ test-before-setup: Connection validated during setup"
-          echo "✓ config-flow-test-coverage: Config flow tests present"
+          echo "✓ test-before-setup: Authentication validated during setup"
+          echo "✓ config-flow-test-coverage: Integration tests present"
           echo "✓ config-entry-unloading: Unload support implemented"
           echo "✓ unique-config-entry: Duplicate prevention in place"
           echo ""

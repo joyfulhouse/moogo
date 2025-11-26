@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - v2
       - 'claude/**'
   pull_request:
     branches:

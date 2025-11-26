@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -11,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from pymoogo import MoogoDevice, MoogoDeviceError
 
 from .const import DOMAIN
 from .coordinator import MoogoCoordinator
@@ -29,13 +29,13 @@ async def async_setup_entry(
     """Set up Moogo switch entities."""
     coordinator: MoogoCoordinator = config_entry.runtime_data
 
-    entities = []
+    entities: list[SwitchEntity] = []
 
     # Only add switch entities if authenticated and devices found
-    if coordinator.api.is_authenticated and coordinator.data.get("devices"):
-        for device in coordinator.data["devices"]:
-            device_id = device.get("deviceId")
-            device_name = device.get("deviceName", f"Moogo Device {device_id}")
+    if coordinator.client.is_authenticated and coordinator.data.get("devices"):
+        for device_data in coordinator.data["devices"]:
+            device_id = device_data.get("deviceId")
+            device_name = device_data.get("deviceName", f"Moogo Device {device_id}")
 
             if device_id:
                 entities.append(MoogoSpraySwitch(coordinator, device_id, device_name))
@@ -44,8 +44,8 @@ async def async_setup_entry(
         async_add_entities(entities, update_before_add=True)
 
 
-class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
-    """Switch entity for controlling spray functionality."""
+class MoogoSpraySwitch(CoordinatorEntity[MoogoCoordinator], SwitchEntity):
+    """Switch entity for controlling spray functionality using pymoogo."""
 
     _attr_has_entity_name = True
 
@@ -54,7 +54,6 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
     ) -> None:
         """Initialize the switch."""
         super().__init__(coordinator)
-        self.coordinator = coordinator
         self.device_id = device_id
         self.device_name = device_name
         self._was_available: bool | None = None
@@ -62,6 +61,11 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
         self._attr_name = "Spray"
         self._attr_unique_id = f"{device_id}_spray_switch"
         self._attr_icon = "mdi:spray"
+
+    @property
+    def device(self) -> MoogoDevice | None:
+        """Get the MoogoDevice instance."""
+        return self.coordinator.get_device(self.device_id)
 
     @property
     def device_info(self) -> dict[str, Any]:
@@ -76,34 +80,32 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        device_status = self.coordinator.data.get("device_statuses", {}).get(
-            self.device_id
-        )
+        device = self.device
         is_available = False
 
         # Check if device is online and API is authenticated
-        if device_status and self.coordinator.api.is_authenticated:
-            online_status = device_status.get("onlineStatus", 0)
-            is_available = online_status == 1 and self.coordinator.last_update_success
+        if device and self.coordinator.client.is_authenticated:
+            is_available = device.is_online and self.coordinator.last_update_success
 
         # Log availability changes with detailed reasons
         if self._was_available is not None and self._was_available != is_available:
             if is_available:
-                _LOGGER.info(f"{self.device_name} spray switch is now available")
+                _LOGGER.info("%s spray switch is now available", self.device_name)
             else:
-                # Determine reason for unavailability
-                if not self.coordinator.api.is_authenticated:
+                if not self.coordinator.client.is_authenticated:
                     reason = "API not authenticated"
                 elif not self.coordinator.last_update_success:
                     reason = "coordinator update failed"
-                elif device_status is None:
-                    reason = "device status unavailable"
-                elif device_status.get("onlineStatus", 0) != 1:
+                elif device is None:
+                    reason = "device not found"
+                elif not device.is_online:
                     reason = "device offline"
                 else:
                     reason = "unknown"
                 _LOGGER.warning(
-                    f"{self.device_name} spray switch is now unavailable ({reason})"
+                    "%s spray switch is now unavailable (%s)",
+                    self.device_name,
+                    reason,
                 )
 
         self._was_available = is_available
@@ -112,207 +114,117 @@ class MoogoSpraySwitch(CoordinatorEntity, SwitchEntity):
     @property
     def is_on(self) -> bool | None:
         """Return true if the spray is currently running."""
-        device_status = self.coordinator.data.get("device_statuses", {}).get(
-            self.device_id
-        )
-        if device_status:
-            run_status = device_status.get("runStatus", 0)
-            return run_status == 1  # 1 = running, 0 = stopped
+        device = self.device
+        if device:
+            return bool(device.is_running)
         return None
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn on the spray with polling to verify start."""
+        """Turn on the spray using pymoogo device control.
+
+        pymoogo handles:
+        - Exponential backoff retry (5 attempts, 2s initial delay)
+        - Circuit breaker for persistently offline devices
+        - Automatic reauthentication on token expiry
+        """
+        device = self.device
+        if not device:
+            _LOGGER.error("Device %s not found", self.device_id)
+            return
+
         try:
-            # Default spray duration of 60 seconds, can be customized
-            duration = kwargs.get("duration", 60)
+            _LOGGER.info("Starting spray for device %s", self.device_name)
 
-            _LOGGER.info(
-                f"Starting spray for device {self.device_id} with duration {duration}s"
-            )
+            # pymoogo's start_spray handles all retry logic internally
+            await device.start_spray()
 
-            # Send the start spray command (with built-in retry logic)
-            # The API client now retries for ~30-40 seconds with exponential backoff
-            success = await self.coordinator.api.start_spray(self.device_id, duration)
+            _LOGGER.info("Spray started for %s", self.device_name)
 
-            if not success:
-                _LOGGER.error(f"API call failed to start spray for {self.device_name}")
-                return
+            # Refresh device status to update UI
+            await device.refresh()
 
-            _LOGGER.info(
-                f"Start spray command sent for {self.device_name}, polling for confirmation..."
-            )
-
-            # Reduced polling since API client now handles retries
-            # Poll every 3 seconds for up to 30 seconds (10 attempts)
-            # This gives the device time to respond after API retries complete
-            poll_attempts = 0
-            max_poll_attempts = 10  # Reduced from 12
-            spray_confirmed = False
-
-            while poll_attempts < max_poll_attempts and not spray_confirmed:
-                poll_attempts += 1
-
-                # Wait 3 seconds before polling (reduced from 5)
-                await asyncio.sleep(3)
-
-                _LOGGER.debug(
-                    f"Polling attempt {poll_attempts}/{max_poll_attempts} for {self.device_name}"
-                )
-
-                # Refresh device status
-                try:
-                    device_status = await self.coordinator.api.get_device_status(
-                        self.device_id
-                    )
-                except Exception as status_error:
-                    _LOGGER.debug(
-                        f"Could not get status on poll {poll_attempts}: {status_error}"
-                    )
-                    continue
-
-                if device_status:
-                    online_status = device_status.get("onlineStatus", 0)
-                    run_status = device_status.get("runStatus", 0)
-
-                    _LOGGER.debug(
-                        f"Device {self.device_id} status - Online: {online_status}, Running: {run_status}"
-                    )
-
-                    # Check if device is online and spraying
-                    if online_status == 1 and run_status == 1:
-                        spray_confirmed = True
-                        _LOGGER.info(
-                            f"✅ Spray successfully started for {self.device_name} "
-                            f"(confirmed after {poll_attempts * 3}s)"
-                        )
-                        break
-                    elif online_status == 1 and run_status == 0:
-                        # Device is online but not spraying - may need more time
-                        _LOGGER.debug(
-                            f"Device {self.device_name} is online but not spraying yet "
-                            f"(after {poll_attempts * 3}s)"
-                        )
-                    else:
-                        _LOGGER.debug(
-                            f"Device {self.device_name} still offline, continuing to poll..."
-                        )
-                else:
-                    _LOGGER.debug(
-                        f"No device status data on poll attempt {poll_attempts}"
-                    )
-
-            if not spray_confirmed:
-                _LOGGER.warning(
-                    f"⚠️ Spray command sent but could not confirm spray started for "
-                    f"{self.device_name} after {max_poll_attempts * 3}s. "
-                    f"Device may still be starting up."
-                )
-
-            # Refresh coordinator data to reflect the final state
+            # Request coordinator refresh to update all entities
             await self.coordinator.async_request_refresh()
 
-        except Exception as e:
-            _LOGGER.error(f"Error starting spray for {self.device_name}: {e}")
+        except MoogoDeviceError as err:
+            _LOGGER.error(
+                "Failed to start spray for %s: %s",
+                self.device_name,
+                err,
+            )
+        except Exception as err:
+            _LOGGER.error(
+                "Unexpected error starting spray for %s: %s",
+                self.device_name,
+                err,
+            )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn off the spray with polling to verify stop."""
+        """Turn off the spray using pymoogo device control.
+
+        pymoogo handles:
+        - Exponential backoff retry (5 attempts, 2s initial delay)
+        - Circuit breaker for persistently offline devices
+        - Automatic reauthentication on token expiry
+        """
+        device = self.device
+        if not device:
+            _LOGGER.error("Device %s not found", self.device_id)
+            return
+
         try:
-            _LOGGER.info(f"Stopping spray for device {self.device_id}")
+            _LOGGER.info("Stopping spray for device %s", self.device_name)
 
-            # Send the stop spray command (with built-in retry logic)
-            # The API client now retries for ~30-40 seconds with exponential backoff
-            success = await self.coordinator.api.stop_spray(
-                self.device_id, "manual_stop"
-            )
+            # pymoogo's stop_spray handles all retry logic internally
+            await device.stop_spray()
 
-            if not success:
-                _LOGGER.error(f"API call failed to stop spray for {self.device_name}")
-                return
+            _LOGGER.info("Spray stopped for %s", self.device_name)
 
-            _LOGGER.info(
-                f"Stop spray command sent for {self.device_name}, polling for confirmation..."
-            )
+            # Refresh device status to update UI
+            await device.refresh()
 
-            # Reduced polling since API client now handles retries
-            # Poll every 3 seconds for up to 18 seconds (6 attempts)
-            poll_attempts = 0
-            max_poll_attempts = 6
-            stop_confirmed = False
-
-            while poll_attempts < max_poll_attempts and not stop_confirmed:
-                poll_attempts += 1
-
-                # Wait 3 seconds before polling (reduced from 5)
-                await asyncio.sleep(3)
-
-                _LOGGER.debug(
-                    f"Stop polling attempt {poll_attempts}/{max_poll_attempts} for {self.device_name}"
-                )
-
-                # Refresh device status
-                try:
-                    device_status = await self.coordinator.api.get_device_status(
-                        self.device_id
-                    )
-                except Exception as status_error:
-                    _LOGGER.debug(
-                        f"Could not get status on stop poll {poll_attempts}: {status_error}"
-                    )
-                    continue
-
-                if device_status:
-                    run_status = device_status.get("runStatus", 0)
-                    online_status = device_status.get("onlineStatus", 0)
-
-                    _LOGGER.debug(
-                        f"Device {self.device_id} status - Online: {online_status}, Running: {run_status}"
-                    )
-
-                    # Check if device has stopped spraying
-                    if run_status == 0:
-                        stop_confirmed = True
-                        _LOGGER.info(
-                            f"✅ Spray successfully stopped for {self.device_name} "
-                            f"(confirmed after {poll_attempts * 3}s)"
-                        )
-                        break
-                    else:
-                        _LOGGER.debug(
-                            f"Device {self.device_name} still spraying, continuing to poll..."
-                        )
-                else:
-                    _LOGGER.debug(
-                        f"No device status data on stop poll attempt {poll_attempts}"
-                    )
-
-            if not stop_confirmed:
-                _LOGGER.warning(
-                    f"⚠️ Stop command sent but could not confirm spray stopped for "
-                    f"{self.device_name} after {max_poll_attempts * 3}s. "
-                    f"Device may still be stopping."
-                )
-
-            # Refresh coordinator data to reflect the final state
+            # Request coordinator refresh to update all entities
             await self.coordinator.async_request_refresh()
 
-        except Exception as e:
-            _LOGGER.error(f"Error stopping spray for {self.device_name}: {e}")
+        except MoogoDeviceError as err:
+            _LOGGER.error(
+                "Failed to stop spray for %s: %s",
+                self.device_name,
+                err,
+            )
+        except Exception as err:
+            _LOGGER.error(
+                "Unexpected error stopping spray for %s: %s",
+                self.device_name,
+                err,
+            )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes."""
-        device_status = self.coordinator.data.get("device_statuses", {}).get(
-            self.device_id
-        )
-        if device_status:
-            return {
+        device = self.device
+        if device:
+            attrs: dict[str, Any] = {
                 "device_id": self.device_id,
-                "run_status": device_status.get("runStatus", 0),
-                "online_status": device_status.get("onlineStatus", 0),
-                "latest_spraying_duration": device_status.get(
-                    "latestSprayingDuration", 0
-                ),
-                "liquid_level": device_status.get("liquid_level", 0),
-                "water_level": device_status.get("water_level", 0),
+                "is_running": device.is_running,
+                "is_online": device.is_online,
             }
+
+            # Add status details if available
+            if device.status:
+                attrs["latest_spraying_duration"] = (
+                    device.status.latest_spraying_duration or 0
+                )
+                attrs["liquid_level"] = device.liquid_level
+                attrs["water_level"] = device.water_level
+
+            # Add circuit breaker status for diagnostics
+            circuit_status = device.circuit_status
+            if circuit_status:
+                attrs["circuit_breaker_open"] = circuit_status.get(
+                    "circuit_open", False
+                )
+                attrs["circuit_breaker_failures"] = circuit_status.get("failures", 0)
+
+            return attrs
         return {}
