@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -20,11 +20,34 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from pymoogo import MoogoDevice
 
-from .const import DOMAIN
+from .const import (
+    API_STATUS_CONNECTED,
+    API_STATUS_DISCONNECTED,
+    ICON_API_STATUS,
+    ICON_DEVICE_STATUS,
+    ICON_LAST_SPRAY,
+    ICON_LIQUID_LEVEL,
+    ICON_LIQUID_TYPES,
+    ICON_SCHEDULE_TEMPLATES,
+    ICON_SCHEDULES,
+    ICON_WATER_LEVEL,
+    SCHEDULE_DISABLED,
+    SCHEDULE_ENABLED,
+    STATUS_OFFLINE,
+    STATUS_ONLINE,
+    STATUS_UNKNOWN,
+)
 from .coordinator import MoogoCoordinator
+from .entity import MoogoCoordinatorEntity, MoogoDeviceEntity
+from .models import ScheduleCache, ScheduleInfo
+from .utils import (
+    convert_api_timestamp,
+    format_schedule_time,
+    get_level_status,
+    safe_float,
+    safe_int,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,24 +85,7 @@ async def async_setup_entry(
 
             if device_id:
                 entities.extend(
-                    [
-                        MoogoDeviceStatusSensor(coordinator, device_id, device_name),
-                        MoogoDeviceLiquidLevelSensor(
-                            coordinator, device_id, device_name
-                        ),
-                        MoogoDeviceWaterLevelSensor(
-                            coordinator, device_id, device_name
-                        ),
-                        MoogoDeviceTemperatureSensor(
-                            coordinator, device_id, device_name
-                        ),
-                        MoogoDeviceHumiditySensor(coordinator, device_id, device_name),
-                        MoogoDeviceSignalStrengthSensor(
-                            coordinator, device_id, device_name
-                        ),
-                        MoogoDeviceSchedulesSensor(coordinator, device_id, device_name),
-                        MoogoDeviceLastSpraySensor(coordinator, device_id, device_name),
-                    ]
+                    _create_device_sensors(coordinator, device_id, device_name)
                 )
                 _LOGGER.debug(
                     "Added 8 sensors for device: %s (%s)", device_name, device_id
@@ -100,36 +106,37 @@ async def async_setup_entry(
     async_add_entities(entities, update_before_add=True)
 
 
-class MoogoBaseSensor(CoordinatorEntity[MoogoCoordinator], SensorEntity):
-    """Base class for Moogo sensors."""
+def _create_device_sensors(
+    coordinator: MoogoCoordinator, device_id: str, device_name: str
+) -> list[SensorEntity]:
+    """Create all sensors for a device.
 
-    _attr_has_entity_name = True
+    Args:
+        coordinator: The Moogo data coordinator.
+        device_id: Unique device identifier.
+        device_name: Human-readable device name.
 
-    def __init__(self, coordinator: MoogoCoordinator) -> None:
-        """Initialize the sensor."""
-        super().__init__(coordinator)
-        self._was_available: bool | None = None
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        is_available = bool(self.coordinator.last_update_success)
-
-        # Log availability changes
-        if self._was_available is not None and self._was_available != is_available:
-            if is_available:
-                _LOGGER.debug("%s is now available", self.name)
-            else:
-                _LOGGER.warning(
-                    "%s is now unavailable (coordinator update failed)", self.name
-                )
-
-        self._was_available = is_available
-        return is_available
+    Returns:
+        List of sensor entities for the device.
+    """
+    return [
+        MoogoDeviceStatusSensor(coordinator, device_id, device_name),
+        MoogoDeviceLiquidLevelSensor(coordinator, device_id, device_name),
+        MoogoDeviceWaterLevelSensor(coordinator, device_id, device_name),
+        MoogoDeviceTemperatureSensor(coordinator, device_id, device_name),
+        MoogoDeviceHumiditySensor(coordinator, device_id, device_name),
+        MoogoDeviceSignalStrengthSensor(coordinator, device_id, device_name),
+        MoogoDeviceSchedulesSensor(coordinator, device_id, device_name),
+        MoogoDeviceLastSpraySensor(coordinator, device_id, device_name),
+    ]
 
 
+# =============================================================================
 # Public Data Sensors
-class MoogoLiquidTypesSensor(MoogoBaseSensor):
+# =============================================================================
+
+
+class MoogoLiquidTypesSensor(MoogoCoordinatorEntity, SensorEntity):
     """Sensor for available liquid concentrate types."""
 
     def __init__(self, coordinator: MoogoCoordinator) -> None:
@@ -137,31 +144,27 @@ class MoogoLiquidTypesSensor(MoogoBaseSensor):
         super().__init__(coordinator)
         self._attr_name = "Moogo Liquid Types"
         self._attr_unique_id = "moogo_liquid_types"
-        self._attr_icon = "mdi:bottle-wine"
+        self._attr_icon = ICON_LIQUID_TYPES
 
     @property
-    def native_value(self) -> str | None:
+    def native_value(self) -> str:
         """Return the state of the sensor."""
         liquid_types = self.coordinator.data.get("liquid_types", [])
-        if liquid_types:
-            return str(len(liquid_types))
-        return "0"
+        return str(len(liquid_types)) if liquid_types else "0"
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional state attributes."""
         liquid_types = self.coordinator.data.get("liquid_types", [])
-        if liquid_types:
-            return {
-                "liquid_types": [
-                    item.get("liquidName", "Unknown") for item in liquid_types
-                ],
-                "details": liquid_types,
-            }
-        return {"liquid_types": [], "details": []}
+        return {
+            "liquid_types": [
+                item.get("liquidName", "Unknown") for item in liquid_types
+            ],
+            "details": liquid_types,
+        }
 
 
-class MoogoScheduleTemplatesSensor(MoogoBaseSensor):
+class MoogoScheduleTemplatesSensor(MoogoCoordinatorEntity, SensorEntity):
     """Sensor for recommended schedule templates."""
 
     def __init__(self, coordinator: MoogoCoordinator) -> None:
@@ -169,29 +172,25 @@ class MoogoScheduleTemplatesSensor(MoogoBaseSensor):
         super().__init__(coordinator)
         self._attr_name = "Moogo Schedule Templates"
         self._attr_unique_id = "moogo_schedule_templates"
-        self._attr_icon = "mdi:calendar-clock"
+        self._attr_icon = ICON_SCHEDULE_TEMPLATES
 
     @property
-    def native_value(self) -> str | None:
+    def native_value(self) -> str:
         """Return the state of the sensor."""
         schedules = self.coordinator.data.get("recommended_schedules", [])
-        if schedules:
-            return str(len(schedules))
-        return "0"
+        return str(len(schedules)) if schedules else "0"
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional state attributes."""
         schedules = self.coordinator.data.get("recommended_schedules", [])
-        if schedules:
-            return {
-                "schedule_names": [item.get("title", "Unknown") for item in schedules],
-                "details": schedules,
-            }
-        return {"schedule_names": [], "details": []}
+        return {
+            "schedule_names": [item.get("title", "Unknown") for item in schedules],
+            "details": schedules,
+        }
 
 
-class MoogoAPIStatusSensor(MoogoBaseSensor):
+class MoogoAPIStatusSensor(MoogoCoordinatorEntity, SensorEntity):
     """Sensor for API connectivity status."""
 
     def __init__(self, coordinator: MoogoCoordinator) -> None:
@@ -199,18 +198,18 @@ class MoogoAPIStatusSensor(MoogoBaseSensor):
         super().__init__(coordinator)
         self._attr_name = "Moogo API Status"
         self._attr_unique_id = "moogo_api_status"
-        self._attr_icon = "mdi:api"
+        self._attr_icon = ICON_API_STATUS
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def native_value(self) -> str:
         """Return the state of the sensor."""
         if self.coordinator.last_update_success:
-            return "Connected"
-        return "Disconnected"
+            return API_STATUS_CONNECTED
+        return API_STATUS_DISCONNECTED
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional state attributes."""
         return {
             "authenticated": self.coordinator.client.is_authenticated,
@@ -218,74 +217,12 @@ class MoogoAPIStatusSensor(MoogoBaseSensor):
         }
 
 
-# Device-specific sensors (require authentication)
-class MoogoDeviceSensor(CoordinatorEntity[MoogoCoordinator], SensorEntity):
-    """Base class for device-specific sensors using pymoogo MoogoDevice."""
-
-    _attr_has_entity_name = True
-
-    def __init__(
-        self, coordinator: MoogoCoordinator, device_id: str, device_name: str
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(coordinator)
-        self.device_id = device_id
-        self.device_name = device_name
-        self._was_available: bool | None = None
-
-    @property
-    def device(self) -> MoogoDevice | None:
-        """Get the MoogoDevice instance."""
-        return self.coordinator.get_device(self.device_id)
-
-    @property
-    def device_info(self) -> dict[str, Any]:
-        """Return device information."""
-        device_info: dict[str, Any] = {
-            "identifiers": {(DOMAIN, self.device_id)},
-            "name": self.device_name,
-            "manufacturer": "Moogo",
-            "model": "Smart Spray Device",
-        }
-
-        # Add firmware version from device properties
-        device = self.device
-        if device and device.firmware:
-            device_info["sw_version"] = device.firmware
-
-        return device_info
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        device = self.device
-        is_available = device is not None and self.coordinator.last_update_success
-
-        # Log availability changes with reasons
-        if self._was_available is not None and self._was_available != is_available:
-            if is_available:
-                _LOGGER.info(
-                    "%s sensor %s is now available", self.device_name, self.name
-                )
-            else:
-                if not self.coordinator.last_update_success:
-                    reason = "coordinator update failed"
-                elif device is None:
-                    reason = "device not found"
-                else:
-                    reason = "unknown"
-                _LOGGER.warning(
-                    "%s sensor %s is now unavailable (%s)",
-                    self.device_name,
-                    self.name,
-                    reason,
-                )
-
-        self._was_available = is_available
-        return is_available
+# =============================================================================
+# Device-Specific Sensors
+# =============================================================================
 
 
-class MoogoDeviceStatusSensor(MoogoDeviceSensor):
+class MoogoDeviceStatusSensor(MoogoDeviceEntity, SensorEntity):
     """Device online/offline status sensor."""
 
     def __init__(
@@ -295,18 +232,18 @@ class MoogoDeviceStatusSensor(MoogoDeviceSensor):
         super().__init__(coordinator, device_id, device_name)
         self._attr_name = "Status"
         self._attr_unique_id = f"{device_id}_status"
-        self._attr_icon = "mdi:power-settings"
+        self._attr_icon = ICON_DEVICE_STATUS
 
     @property
-    def native_value(self) -> str | None:
+    def native_value(self) -> str:
         """Return the state of the sensor."""
         device = self.device
         if device:
-            return "Online" if device.is_online else "Offline"
-        return "Unknown"
+            return STATUS_ONLINE if device.is_online else STATUS_OFFLINE
+        return STATUS_UNKNOWN
 
 
-class MoogoDeviceLiquidLevelSensor(MoogoDeviceSensor):
+class MoogoDeviceLiquidLevelSensor(MoogoDeviceEntity, SensorEntity):
     """Device liquid level sensor."""
 
     def __init__(
@@ -316,24 +253,18 @@ class MoogoDeviceLiquidLevelSensor(MoogoDeviceSensor):
         super().__init__(coordinator, device_id, device_name)
         self._attr_name = "Liquid Level"
         self._attr_unique_id = f"{device_id}_liquid_level"
-        self._attr_icon = "mdi:cup-water"
+        self._attr_icon = ICON_LIQUID_LEVEL
 
     @property
     def native_value(self) -> str | None:
         """Return the state of the sensor."""
         device = self.device
         if device:
-            liquid_level = device.liquid_level
-            if liquid_level == 1:
-                return "OK"
-            elif liquid_level == 0:
-                return "Empty"
-            else:
-                return "Unknown"
+            return get_level_status(device.liquid_level)
         return None
 
 
-class MoogoDeviceWaterLevelSensor(MoogoDeviceSensor):
+class MoogoDeviceWaterLevelSensor(MoogoDeviceEntity, SensorEntity):
     """Device water level sensor."""
 
     def __init__(
@@ -343,24 +274,18 @@ class MoogoDeviceWaterLevelSensor(MoogoDeviceSensor):
         super().__init__(coordinator, device_id, device_name)
         self._attr_name = "Water Level"
         self._attr_unique_id = f"{device_id}_water_level"
-        self._attr_icon = "mdi:water-percent"
+        self._attr_icon = ICON_WATER_LEVEL
 
     @property
     def native_value(self) -> str | None:
         """Return the state of the sensor."""
         device = self.device
         if device:
-            water_level = device.water_level
-            if water_level == 1:
-                return "OK"
-            elif water_level == 0:
-                return "Empty"
-            else:
-                return "Unknown"
+            return get_level_status(device.water_level)
         return None
 
 
-class MoogoDeviceTemperatureSensor(MoogoDeviceSensor):
+class MoogoDeviceTemperatureSensor(MoogoDeviceEntity, SensorEntity):
     """Device temperature sensor."""
 
     def __init__(
@@ -378,13 +303,10 @@ class MoogoDeviceTemperatureSensor(MoogoDeviceSensor):
     def native_value(self) -> float | None:
         """Return the state of the sensor."""
         device = self.device
-        if device:
-            temp = device.temperature
-            return float(temp) if temp is not None else None
-        return None
+        return safe_float(device.temperature) if device else None
 
 
-class MoogoDeviceHumiditySensor(MoogoDeviceSensor):
+class MoogoDeviceHumiditySensor(MoogoDeviceEntity, SensorEntity):
     """Device humidity sensor."""
 
     def __init__(
@@ -402,13 +324,10 @@ class MoogoDeviceHumiditySensor(MoogoDeviceSensor):
     def native_value(self) -> int | None:
         """Return the state of the sensor."""
         device = self.device
-        if device:
-            humidity = device.humidity
-            return int(humidity) if humidity is not None else None
-        return None
+        return safe_int(device.humidity) if device else None
 
 
-class MoogoDeviceSignalStrengthSensor(MoogoDeviceSensor):
+class MoogoDeviceSignalStrengthSensor(MoogoDeviceEntity, SensorEntity):
     """Device signal strength sensor."""
 
     def __init__(
@@ -427,13 +346,10 @@ class MoogoDeviceSignalStrengthSensor(MoogoDeviceSensor):
     def native_value(self) -> int | None:
         """Return the state of the sensor."""
         device = self.device
-        if device:
-            rssi = device.rssi
-            return int(rssi) if rssi is not None else None
-        return None
+        return safe_int(device.rssi) if device else None
 
 
-class MoogoDeviceSchedulesSensor(MoogoDeviceSensor):
+class MoogoDeviceSchedulesSensor(MoogoDeviceEntity, SensorEntity):
     """Device active schedules sensor."""
 
     def __init__(
@@ -443,62 +359,74 @@ class MoogoDeviceSchedulesSensor(MoogoDeviceSensor):
         super().__init__(coordinator, device_id, device_name)
         self._attr_name = "Active Schedules"
         self._attr_unique_id = f"{device_id}_active_schedules"
-        self._attr_icon = "mdi:calendar-check"
+        self._attr_icon = ICON_SCHEDULES
         self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._schedules_cache: list[dict[str, Any]] = []
+        self._schedules_cache: list[ScheduleCache] = []
+        # Cache computed counts to avoid duplicate calculation
+        self._enabled_count: int = 0
+        self._disabled_count: int = 0
 
     async def async_update(self) -> None:
         """Update schedule data from device."""
         device = self.device
-        if device:
-            try:
-                schedules = await device.get_schedules()
-                self._schedules_cache = [
-                    {
-                        "id": s.id,
-                        "hour": s.hour,
-                        "minute": s.minute,
-                        "duration": s.duration,
-                        "repeatSet": s.repeat_set,
-                        "status": 1 if s.is_enabled else 0,
-                    }
-                    for s in schedules
-                ]
-            except Exception as err:
-                _LOGGER.debug("Failed to get schedules for %s: %s", self.device_id, err)
+        if not device:
+            return
 
-    @property
-    def native_value(self) -> int | None:
-        """Return the number of active schedules."""
-        return sum(1 for s in self._schedules_cache if s.get("status") == 1)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return additional state attributes."""
-        schedule_info = []
-        for schedule in self._schedules_cache:
-            schedule_info.append(
-                {
-                    "id": schedule.get("id"),
-                    "time": f"{schedule.get('hour', 0):02d}:{schedule.get('minute', 0):02d}",
-                    "duration": schedule.get("duration", 0),
-                    "repeat": schedule.get("repeatSet", ""),
-                    "status": "enabled" if schedule.get("status") == 1 else "disabled",
-                }
+        try:
+            schedules = await device.get_schedules()
+            self._schedules_cache = [
+                ScheduleCache(
+                    id=s.id,
+                    hour=s.hour,
+                    minute=s.minute,
+                    duration=s.duration,
+                    repeatSet=s.repeat_set,
+                    status=SCHEDULE_ENABLED if s.is_enabled else SCHEDULE_DISABLED,
+                )
+                for s in schedules
+            ]
+            # Update cached counts
+            self._enabled_count = sum(
+                1 for s in self._schedules_cache if s["status"] == SCHEDULE_ENABLED
             )
+            self._disabled_count = sum(
+                1 for s in self._schedules_cache if s["status"] == SCHEDULE_DISABLED
+            )
+        except Exception as err:
+            _LOGGER.debug("Failed to get schedules for %s: %s", self.device_id, err)
 
-        enabled = sum(1 for s in self._schedules_cache if s.get("status") == 1)
-        disabled = sum(1 for s in self._schedules_cache if s.get("status") == 0)
+    @property
+    def native_value(self) -> int:
+        """Return the number of active schedules."""
+        return self._enabled_count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional state attributes."""
+        schedule_info: list[ScheduleInfo] = [
+            ScheduleInfo(
+                id=schedule.get("id"),
+                time=format_schedule_time(
+                    schedule.get("hour", 0), schedule.get("minute", 0)
+                ),
+                duration=schedule.get("duration", 0),
+                repeat=schedule.get("repeatSet", ""),
+                status="enabled"
+                if schedule.get("status") == SCHEDULE_ENABLED
+                else "disabled",
+            )
+            for schedule in self._schedules_cache
+        ]
 
         return {
             "schedules": schedule_info,
             "total_schedules": len(self._schedules_cache),
-            "enabled_schedules": enabled,
-            "disabled_schedules": disabled,
+            "enabled_schedules": self._enabled_count,
+            "disabled_schedules": self._disabled_count,
         }
 
 
-class MoogoDeviceLastSpraySensor(MoogoDeviceSensor):
+class MoogoDeviceLastSpraySensor(MoogoDeviceEntity, SensorEntity):
     """Device last spray information sensor."""
 
     def __init__(
@@ -508,7 +436,7 @@ class MoogoDeviceLastSpraySensor(MoogoDeviceSensor):
         super().__init__(coordinator, device_id, device_name)
         self._attr_name = "Last Spray"
         self._attr_unique_id = f"{device_id}_last_spray"
-        self._attr_icon = "mdi:spray-bottle"
+        self._attr_icon = ICON_LAST_SPRAY
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_entity_registry_enabled_default = False
 
@@ -517,36 +445,11 @@ class MoogoDeviceLastSpraySensor(MoogoDeviceSensor):
         """Return the last spray timestamp."""
         device = self.device
         if device and device.status:
-            last_spray_end = device.status.latest_spraying_end
-            if last_spray_end and last_spray_end > 0:
-                _LOGGER.debug(
-                    "Raw timestamp value for %s: %s", self.device_id, last_spray_end
-                )
-
-                try:
-                    # First try as milliseconds (typical for modern APIs)
-                    if last_spray_end > 1000000000000:  # Roughly year 2001 in ms
-                        result = datetime.fromtimestamp(last_spray_end / 1000, tz=UTC)
-                        _LOGGER.debug(
-                            "Converted milliseconds %s to %s", last_spray_end, result
-                        )
-                        return result
-                    # If less than that, it's probably in seconds
-                    else:
-                        result = datetime.fromtimestamp(last_spray_end, tz=UTC)
-                        _LOGGER.debug(
-                            "Converted seconds %s to %s", last_spray_end, result
-                        )
-                        return result
-                except (ValueError, OSError) as e:
-                    _LOGGER.warning(
-                        "Invalid timestamp format: %s, error: %s", last_spray_end, e
-                    )
-                    return None
+            return convert_api_timestamp(device.status.latest_spraying_end)
         return None
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional state attributes."""
         device = self.device
         if device and device.status:

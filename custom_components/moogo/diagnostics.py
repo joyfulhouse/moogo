@@ -41,10 +41,15 @@ async def async_get_config_entry_diagnostics(
             "last_update_success": coordinator.last_update_success,
             "last_update_time": (
                 coordinator.last_update_success_time.isoformat()
-                if coordinator.last_update_success_time
+                if hasattr(coordinator, "last_update_success_time")
+                and coordinator.last_update_success_time
                 else None
             ),
-            "update_interval": coordinator.update_interval.total_seconds(),
+            "update_interval": (
+                coordinator.update_interval.total_seconds()
+                if coordinator.update_interval
+                else None
+            ),
             "auth_status": coordinator.data.get("auth_status", "unknown"),
         },
         "api_info": {
