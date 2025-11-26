@@ -6,12 +6,13 @@ on:
       - 'claude/**'
       - 'main'
       - 'develop'
+      - 'v2'
   pull_request:
     branches:
       - 'main'
 
 env:
-  PYTHON_VERSION: "3.11"
+  PYTHON_VERSION: "3.13"
 
 jobs:
   code-quality:
@@ -51,14 +52,14 @@ jobs:
       - name: Type checking with mypy (Platinum tier)
         continue-on-error: true
         run: |
-          mypy custom_components/moogo/*.py custom_components/moogo/moogo_api/*.py --ignore-missing-imports --check-untyped-defs --no-strict-optional || echo "::warning::Type checking issues found (Platinum tier requirement)"
+          mypy custom_components/moogo/*.py --ignore-missing-imports --check-untyped-defs --no-strict-optional || echo "::warning::Type checking issues found (Platinum tier requirement)"
 
   test-coverage:
     name: Test Coverage
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12", "3.13"]
 
     steps:
       - name: Checkout code
@@ -227,14 +228,11 @@ jobs:
           # Type annotations in const.py
           grep -q ": Final" custom_components/moogo/const.py && echo "✓ const.py: Final type annotations present" || exit 1
 
-          # aiohttp>=3.8.0 in manifest.json
-          grep -q '"aiohttp>=3.8.0"' custom_components/moogo/manifest.json && echo "✓ manifest.json: aiohttp>=3.8.0 dependency" || exit 1
-
-          # ClientSession | None in moogo_api/client.py
-          grep -q "ClientSession | None" custom_components/moogo/moogo_api/client.py && echo "✓ client.py: ClientSession | None type annotation" || exit 1
+          # pymoogo dependency in manifest.json (handles aiohttp internally)
+          grep -q '"pymoogo==' custom_components/moogo/manifest.json && echo "✓ manifest.json: pymoogo dependency" || exit 1
 
           # strict-typing
-          mypy custom_components/moogo/*.py custom_components/moogo/moogo_api/*.py --ignore-missing-imports --check-untyped-defs && echo "✓ strict-typing: Passes mypy with type checking" || echo "⚠ strict-typing: Type hints present but mypy reports some issues (continuing)"
+          mypy custom_components/moogo/*.py --ignore-missing-imports --check-untyped-defs && echo "✓ strict-typing: Passes mypy with type checking" || echo "⚠ strict-typing: Type hints present but mypy reports some issues (continuing)"
 
           echo ""
           echo "🏆 Platinum Tier: PASSED"
@@ -250,7 +248,7 @@ jobs:
         run: |
           echo "# Home Assistant Integration Quality Scale Status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Current Status (v1.0.5)" >> $GITHUB_STEP_SUMMARY
+          echo "## Current Status" >> $GITHUB_STEP_SUMMARY
           echo "- 🥉 **Bronze Tier**: PASSED ✓" >> $GITHUB_STEP_SUMMARY
           echo "- 🥈 **Silver Tier**: PASSED ✓" >> $GITHUB_STEP_SUMMARY
           echo "- 🥇 **Gold Tier**: PASSED ✓" >> $GITHUB_STEP_SUMMARY
