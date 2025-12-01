@@ -50,18 +50,17 @@ A Home Assistant custom integration for Moogo smart mosquito misting devices, pr
 
 ### HACS *(Recommended)*
 
-This integration includes HACS support and can be submitted to the HACS community store:
+This integration is available in the default HACS repository:
 
-1. **Add Custom Repository** (until officially added):
-   - Go to HACS → Integrations
-   - Click the three dots menu → Custom repositories
-   - Add repository URL: `https://github.com/joyfulhouse/moogo`
-   - Category: Integration
-   
-2. **Install via HACS**:
-   - Search for "Moogo Smart Mosquito Misting Device"
-   - Click Install
-   - Restart Home Assistant
+1. Open HACS in your Home Assistant instance
+2. Go to **Integrations**
+3. Search for "Moogo Smart Mosquito Misting Device"
+4. Click **Download**
+5. Restart Home Assistant
+
+> **Note:** If you can't find the integration, you can add it as a custom repository:
+> - Go to HACS → Integrations → three dots menu → **Custom repositories**
+> - Add `https://github.com/joyfulhouse/moogo` with category **Integration**
 
 ### Manual Installation
 
@@ -310,7 +309,7 @@ This is an unofficial integration and is not affiliated with or endorsed by Moog
 [commits]: https://github.com/joyfulhouse/moogo/commits/main
 [license-shield]: https://img.shields.io/github/license/joyfulhouse/moogo?style=for-the-badge
 [hacs]: https://hacs.xyz
-[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
+[hacsbadge]: https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge
 [maintenance-shield]: https://img.shields.io/badge/maintainer-joyfulhouse-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/joyfulhouse
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
