@@ -1,117 +1,100 @@
-# Moogo Smart Mosquito Misting Device for Home Assistant
+# Moogo Smart Mosquito Misting Device
+
+A Home Assistant custom integration for Moogo smart mosquito misting devices, providing device control, monitoring, and automation for automated mosquito management in outdoor spaces.
 
 [![GitHub Release][releases-shield]][releases]
-[![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
-[![hacs][hacsbadge]][hacs]
+[![HACS][hacs-shield]][hacs]
+[![CI][ci-shield]][ci]
+[![Project Maintenance][maintenance-shield]][maintenance]
+[![GitHub Sponsors][sponsors-shield]][sponsors]
+[![Ko-fi][kofi-shield]][kofi]
 
-[![Project Maintenance][maintenance-shield]][user_profile]
-[![Buy me a coffee][buymecoffeebadge]][buymecoffee]
+## What It Does
 
-A Home Assistant custom integration for Moogo smart mosquito misting devices, providing comprehensive device control, monitoring, and automation capabilities for automated mosquito control in your outdoor spaces.
+This integration connects Home Assistant to Moogo cloud-connected mosquito misting devices via the Moogo REST API (`https://api.moogo.com/`). It supports both authenticated (full device control) and unauthenticated (public data) modes. Entities update every 30 seconds for authenticated device data and every hour for public data.
 
-## ⚡ Features
+## Features
 
-- 🏠 **Complete Home Assistant Integration** - Native support with proper device discovery
-- 🦟 **Mosquito Control Monitoring** - Real-time misting device status, solution levels, environmental conditions
-- 🎮 **Misting Device Control** - Start/stop mosquito misting operations with switch entities
-- 📅 **Automated Schedule Management** - Monitor active misting schedules and next operation times
-- 🌡️ **Environmental Sensors** - Temperature, humidity, and signal strength monitoring for optimal misting conditions
-- 💧 **Solution Level Monitoring** - Mosquito control concentrate and water tank status ("OK" or "Empty")
-- 🔄 **Smart Automation** - 30-second polling for real-time monitoring of your mosquito-free zone
-- 🔐 **Secure Authentication** - Email/password authentication with token management
-- 📶 **Public Data Access** - Access concentrate types and recommended misting schedules without authentication
-- ⚡ **Device Management** - Firmware version tracking and comprehensive device information
+- Start/stop mosquito misting operations via switch entities
+- Real-time device status: online/offline, concentrate level, water level
+- Environmental sensors: temperature (°C), humidity (%), WiFi signal strength (dBm)
+- Active schedule count and last misting timestamp per device
+- Public data access: available concentrate types and recommended schedule templates
+- Config flow supporting both full-access (email/password) and public-data-only modes
+- 24-hour rate-limit detection and management for failed login attempts
+- Automatic token refresh and session persistence
 
-## 🏗️ Supported Entities
+## Prerequisites
 
-### Sensors
+- Home Assistant 2023.1.0 or newer
+- [HACS](https://hacs.xyz) installed (recommended for installation)
+- A Moogo account (optional — required only for device control and per-device sensors)
+- Active internet connection (cloud-polling integration)
 
-**Public Data (Always Available):**
-- **API Status** - Integration connectivity status
-- **Concentrate Types** - Available mosquito control concentrate types with details
-- **Schedule Templates** - Recommended mosquito misting schedule templates
+## Installation
 
-**Authenticated Device Data:**
-- **Device Status** - Online/offline status monitoring
-- **Concentrate Level** - Mosquito control solution status ("OK" or "Empty")
-- **Water Level** - Water tank status for misting system ("OK" or "Empty")
-- **Temperature** - Environmental temperature readings (°C) for optimal misting conditions
-- **Humidity** - Environmental humidity readings (%) affecting mosquito activity
-- **Signal Strength** - Device WiFi signal strength (dBm)
-- **Active Schedules** - Count of enabled mosquito misting schedules
-- **Last Misting** - Timestamp and duration of most recent mosquito control misting
+See **[INSTALL.md](INSTALL.md)** for the complete guide.
 
-### Switches
+**Quick version (HACS):** add this repository as a custom repository in HACS,
+install **Moogo Smart Mosquito Misting Device**, restart Home Assistant, then add the integration
+from **Settings → Devices & Services**.
 
-- **Mosquito Misting Control** - Start/stop mosquito misting operations for each device
+[![Open in HACS][hacs-repo-shield]][hacs-repo]
 
-## 📦 Installation
-
-### HACS *(Recommended)*
-
-This integration is available in the default HACS repository:
-
-1. Open HACS in your Home Assistant instance
-2. Go to **Integrations**
-3. Search for "Moogo Smart Mosquito Misting Device"
-4. Click **Download**
-5. Restart Home Assistant
-
-> **Note:** If you can't find the integration, you can add it as a custom repository:
-> - Go to HACS → Integrations → three dots menu → **Custom repositories**
-> - Add `https://github.com/joyfulhouse/moogo` with category **Integration**
-
-### Manual Installation
-
-1. Download the latest release from [GitHub Releases][releases]
-2. Extract the files to your Home Assistant `custom_components` directory:
-   ```
-   /config/custom_components/moogo/
-   ```
-3. Restart Home Assistant
-4. Add the integration through the UI: **Settings** → **Devices & Services** → **Add Integration** → **Moogo Smart Mosquito Misting Device**
-
-### Direct Download
-
-```bash
-cd /config/custom_components
-git clone https://github.com/joyfulhouse/moogo.git moogo
-```
-
-## ⚙️ Configuration
+## Configuration
 
 The integration supports two modes:
 
-### 🔐 Full Access (Recommended)
-Provide your Moogo account credentials for complete mosquito misting device control:
-- All sensor data including device status, concentrate/water levels, environmental conditions
-- Misting device control switches for mosquito control operations
-- Real-time status updates every 30 seconds
-- Device information including firmware version and misting history
+**Full Access (Recommended)** — provide your Moogo email and password:
 
-### 📊 Public Data Only
-Leave credentials blank to access:
-- Available mosquito control concentrate types
-- Recommended mosquito misting schedules
-- Basic API connectivity status
-- Updates every hour for public data
+- All device sensors (status, levels, temperature, humidity, signal strength)
+- Misting control switch per device
+- Real-time updates every 30 seconds
+
+**Public Data Only** — leave credentials blank:
+
+- Concentrate types and recommended schedule templates
+- API connectivity status sensor
+- Updates every hour
 
 ### Configuration Steps
 
-1. Go to **Settings** → **Devices & Services**
-2. Click **Add Integration** 
-3. Search for **Moogo Smart Mosquito Misting Device** and select it
-4. Choose your configuration:
-   - **Full Access**: Enter your Moogo email and password
-   - **Public Data**: Leave email and password fields empty
-5. Click **Submit** to complete setup
+1. Go to **Settings → Devices & Services**
+2. Click **Add Integration** and search for **Moogo Smart Mosquito Misting Device**
+3. Enter your Moogo email and password for full access, or leave blank for public data only
+4. Click **Submit**
 
-## 🎯 Usage
+## Supported Equipment
 
-### Automation Examples
+Any Moogo smart mosquito misting device registered to your account. Entities are created per device.
 
-**Low Level Alert:**
+### Sensors
+
+| Entity | Description | Mode |
+|---|---|---|
+| API Status | Integration connectivity | Public |
+| Concentrate Types | Available concentrate types with details | Public |
+| Schedule Templates | Recommended misting schedule templates | Public |
+| Device Status | Online/offline | Authenticated |
+| Concentrate Level | Mosquito control solution status ("OK" / "Empty") | Authenticated |
+| Water Level | Water tank status ("OK" / "Empty") | Authenticated |
+| Temperature | Environmental temperature (°C) | Authenticated |
+| Humidity | Environmental humidity (%) | Authenticated |
+| Signal Strength | WiFi signal strength (dBm) | Authenticated |
+| Active Schedules | Count of enabled misting schedules | Authenticated |
+| Last Misting | Timestamp and duration of most recent operation | Authenticated |
+
+### Switches
+
+| Entity | Description |
+|---|---|
+| Mosquito Misting Control | Start/stop misting for each device |
+
+## Automation Examples
+
+**Low concentrate alert:**
+
 ```yaml
 automation:
   - alias: "Moogo Low Concentrate Alert"
@@ -123,27 +106,17 @@ automation:
       - service: notify.mobile_app
         data:
           title: "Moogo Mosquito Control Alert"
-          message: "Mosquito control concentrate is empty - please refill for continued protection"
-
-  - alias: "Moogo Low Water Alert" 
-    trigger:
-      - platform: state
-        entity_id: sensor.moogo_s1_yitg_water_level
-        to: "Empty"
-    action:
-      - service: notify.mobile_app
-        data:
-          title: "Moogo Mosquito Control Alert"
-          message: "Misting system water level is empty - please refill for continued operation"
+          message: "Mosquito control concentrate is empty - please refill"
 ```
 
-**Evening Mosquito Control:**
+**Evening misting when device is online and supplies are adequate:**
+
 ```yaml
 automation:
   - alias: "Evening Mosquito Misting Schedule"
     trigger:
       platform: time
-      at: "19:00:00"  # Peak mosquito activity time
+      at: "19:00:00"
     condition:
       - condition: state
         entity_id: sensor.moogo_s1_yitg_status
@@ -158,34 +131,31 @@ automation:
       - service: switch.turn_on
         target:
           entity_id: switch.moogo_s1_yitg_spray
-        data:
-          # Start mosquito misting for outdoor protection
 ```
 
-**Temperature-Based Mosquito Control:**
+**Temperature-triggered misting during peak mosquito hours:**
+
 ```yaml
 automation:
   - alias: "Hot Weather Mosquito Misting"
     trigger:
       - platform: numeric_state
         entity_id: sensor.moogo_s1_yitg_temperature
-        above: 25  # Optimal temperature for mosquito activity
+        above: 25
     condition:
       - condition: state
         entity_id: sensor.moogo_s1_yitg_status
         state: "Online"
       - condition: time
-        after: "18:00:00"  # Evening hours when mosquitoes are most active
+        after: "18:00:00"
         before: "22:00:00"
     action:
       - service: switch.turn_on
         target:
           entity_id: switch.moogo_s1_yitg_spray
-        data:
-          # Activate misting when conditions favor mosquito activity
 ```
 
-### Lovelace Card Example
+**Lovelace card:**
 
 ```yaml
 type: entities
@@ -211,108 +181,83 @@ entities:
     name: Mosquito Misting Control
 ```
 
-## 🔧 Troubleshooting
-
-### Common Issues
+## Troubleshooting
 
 **Integration not appearing**
-- Ensure files are in `/config/custom_components/moogo/`
+- Ensure files are in `config/custom_components/moogo/`
 - Restart Home Assistant completely
-- Check the logs for any error messages
+- Check Home Assistant logs for error messages
 
 **Authentication failures**
 - Verify your Moogo account credentials
 - Ensure your account has device access
-- Check for rate limiting (24-hour lockout after multiple failed attempts)
-- Try the public data mode first to test connectivity
+- Rate limiting applies a 24-hour lockout after multiple failed attempts; try public data mode to verify connectivity
+- Check for `10104` (invalid credentials) or `10000` (rate-limited) in logs
 
 **No device data**
 - Confirm your devices are online in the Moogo mobile app
-- Check if your account has the necessary permissions
-- Review the integration logs for API errors
+- Check that your account has the necessary permissions
+- Review integration logs for API errors
 
-**Sensors not updating**
+**Sensors not updating or showing "Unknown"**
 - Check your internet connection
-- Verify the Moogo API service status
-- Review coordinator update intervals in logs
+- Device may be offline — check the device status sensor
+- Review coordinator update intervals in logs; add debug logging (see below)
 
-**Sensors showing "Unknown"**
-- Device may be offline - check device status sensor
-- API may be temporarily unavailable
-- Check integration logs for specific error messages
-
-### Debug Logging
-
-Add the following to your `configuration.yaml` for detailed logs:
+**Debug logging:**
 
 ```yaml
 logger:
   default: info
   logs:
     custom_components.moogo: debug
-    custom_components.moogo.moogo_api.client: debug
     custom_components.moogo.coordinator: debug
 ```
 
-## 🛠️ Technical Details
+## Development
 
-### Requirements
+This integration is built on the
+[pymoogo](https://github.com/joyfulhouse/pymoogo) Python
+library. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) to set up a development
+environment.
 
-- Home Assistant 2023.1 or later
-- Python 3.11 or later
-- Active internet connection
-- Moogo account (optional, for full functionality)
+## Support
 
-### Architecture
+- **Issues:** <https://github.com/joyfulhouse/moogo/issues>
+- **Discussions / questions:** open an issue with the `question` label.
 
-This integration follows Home Assistant's development standards and uses:
+## Support Development
 
-- **DataUpdateCoordinator** for efficient API calls with smart polling intervals
-- **Config Flow** for user-friendly setup supporting both authentication modes
-- **Device Registry** integration for proper device management with firmware info
-- **Async/await** patterns for non-blocking operations
-- **Comprehensive error handling** for API failures and rate limiting
+If this project is useful to you, please consider supporting its development:
 
-### API Information
+- [GitHub Sponsors][sponsors]
+- [Ko-fi][kofi]
 
-The integration communicates with:
-- **Production**: `https://api.moogo.com/`
-- **Authentication**: Token-based with automatic refresh
-- **Rate Limiting**: 24-hour lockout protection after multiple failed attempts
-- **Update Intervals**: 30 seconds for real-time mosquito control monitoring, 1 hour for public data
+## License
 
-## 📝 License
+This project is licensed under the **MIT** License — see
+[LICENSE](LICENSE) for details.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Credits
 
-## 🆘 Support
+Built and maintained by [JoyfulHouse](https://github.com/joyfulhouse) with the
+[pymoogo](https://github.com/joyfulhouse/pymoogo) library.
 
-- 🐛 [Report Issues][issues]
-- 💬 [GitHub Discussions][discussions]  
-- ❓ [Home Assistant Community Forum](https://community.home-assistant.io/)
+This is an unofficial integration and is not affiliated with or endorsed by Moogo.
 
-## 🙏 Acknowledgments
-
-This integration was developed by analyzing the excellent [Thermacell LIV integration](https://github.com/joyfulhouse/thermacell_liv) for structural patterns and best practices.
-
-## ⚠️ Disclaimer
-
-This is an unofficial integration and is not affiliated with or endorsed by Moogo. All product names, logos, and brands are property of their respective owners.
-
----
-
-**Moogo** and related trademarks are property of their respective owners. This integration is developed independently and is not endorsed by the trademark holders.
-
-[releases-shield]: https://img.shields.io/github/v/release/joyfulhouse/moogo?style=for-the-badge
+<!-- Badge links -->
+[releases-shield]: https://img.shields.io/github/release/joyfulhouse/moogo.svg?style=for-the-badge
 [releases]: https://github.com/joyfulhouse/moogo/releases
-[commits-shield]: https://img.shields.io/github/commit-activity/y/joyfulhouse/moogo?style=for-the-badge
-[commits]: https://github.com/joyfulhouse/moogo/commits/main
-[license-shield]: https://img.shields.io/github/license/joyfulhouse/moogo?style=for-the-badge
-[hacs]: https://hacs.xyz
-[hacsbadge]: https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-joyfulhouse-blue.svg?style=for-the-badge
-[user_profile]: https://github.com/joyfulhouse
-[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
-[buymecoffee]: https://www.buymeacoffee.com/btli
-[issues]: https://github.com/joyfulhouse/moogo/issues
-[discussions]: https://github.com/joyfulhouse/moogo/discussions
+[license-shield]: https://img.shields.io/github/license/joyfulhouse/moogo.svg?style=for-the-badge
+[hacs-shield]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge
+[hacs]: https://github.com/hacs/integration
+[hacs-repo-shield]: https://my.home-assistant.io/badges/hacs_repository.svg
+[hacs-repo]: https://my.home-assistant.io/redirect/hacs_repository/?owner=joyfulhouse&repository=moogo&category=integration
+[ci-shield]: https://img.shields.io/github/actions/workflow/status/joyfulhouse/moogo/hacs-validate.yml?style=for-the-badge&label=CI
+[ci]: https://github.com/joyfulhouse/moogo/actions
+[maintenance-shield]: https://img.shields.io/badge/maintainer-%40btli-blue.svg?style=for-the-badge
+[maintenance]: https://github.com/btli
+[sponsors-shield]: https://img.shields.io/badge/sponsor-GitHub-EA4AAA.svg?style=for-the-badge&logo=githubsponsors&logoColor=white
+[sponsors]: https://github.com/sponsors/btli
+[kofi-shield]: https://img.shields.io/badge/Ko--fi-donate-FF5E5B.svg?style=for-the-badge&logo=ko-fi&logoColor=white
+[kofi]: https://ko-fi.com/bryanli

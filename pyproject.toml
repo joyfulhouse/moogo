@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 license = {text = "MIT"}
 authors = [
-    {name = "Bryan Li", email = "btli@users.noreply.github.com"}
+    {name = "JoyfulHouse Real Estate LLC", email = "btli@users.noreply.github.com"}
 ]
 keywords = ["homeassistant", "moogo", "smart home", "mosquito control"]
 classifiers = [
