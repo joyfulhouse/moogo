@@ -411,9 +411,11 @@ class MoogoDeviceSchedulesSensor(MoogoDeviceEntity, SensorEntity):
                 ),
                 duration=schedule.get("duration", 0),
                 repeat=schedule.get("repeatSet", ""),
-                status="enabled"
-                if schedule.get("status") == SCHEDULE_ENABLED
-                else "disabled",
+                status=(
+                    "enabled"
+                    if schedule.get("status") == SCHEDULE_ENABLED
+                    else "disabled"
+                ),
             )
             for schedule in self._schedules_cache
         ]

@@ -159,7 +159,7 @@ jobs:
           grep -q "async_step_reauth" custom_components/moogo/config_flow.py && echo "✓ reauthentication-flow: Implemented" || exit 1
 
           # entity-unavailable
-          grep -rq "unavailable" custom_components/moogo/sensor.py custom_components/moogo/switch.py && echo "✓ entity-unavailable: Implemented" || exit 1
+          grep -rq "unavailable" custom_components/moogo/entity.py custom_components/moogo/sensor.py custom_components/moogo/switch.py && echo "✓ entity-unavailable: Implemented" || exit 1
 
           # parallel-updates
           grep -rq "PARALLEL_UPDATES" custom_components/moogo/sensor.py custom_components/moogo/switch.py && echo "✓ parallel-updates: Specified" || exit 1

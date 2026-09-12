@@ -61,7 +61,7 @@ rules:
 
   has-entity-name:
     status: done
-    comment: All entities use _attr_has_entity_name = True
+    comment: _attr_has_entity_name = True on the shared MoogoEntity base class (entity.py)
 
   runtime-data:
     status: done
@@ -99,7 +99,7 @@ rules:
 
   entity-unavailable:
     status: done
-    comment: Entities check coordinator.last_update_success and device availability
+    comment: MoogoEntity.available (entity.py) checks coordinator.last_update_success and device availability
 
   integration-owner:
     status: done
@@ -107,7 +107,7 @@ rules:
 
   log-when-unavailable:
     status: done
-    comment: Availability changes logged in sensor.py and switch.py
+    comment: Availability transitions logged by MoogoEntity._log_availability_change (entity.py)
 
   parallel-updates:
     status: done

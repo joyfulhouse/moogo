@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.13"]
 
     steps:
       - name: Checkout code
@@ -78,7 +78,7 @@ jobs:
 
       - name: Check for has_entity_name
         run: |
-          if grep -r "_attr_has_entity_name = True" custom_components/moogo/sensor.py custom_components/moogo/switch.py > /dev/null; then
+          if grep -r "_attr_has_entity_name = True" custom_components/moogo/entity.py custom_components/moogo/sensor.py custom_components/moogo/switch.py > /dev/null; then
             echo "✓ Entities use has_entity_name pattern"
           else
             echo "✗ Entities missing has_entity_name"
